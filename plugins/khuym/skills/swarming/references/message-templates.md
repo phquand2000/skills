@@ -29,11 +29,11 @@ Execution model:
 - Blockers and course corrections happen in this thread
 
 Workers spawning now:
-- Codex: <CODEX_NICKNAME_1> / Agent Mail: pending
-- Codex: <CODEX_NICKNAME_2> / Agent Mail: pending
-- Codex: <CODEX_NICKNAME_3> / Agent Mail: pending
+- Worker 1: pending (Thread: <THREAD_ID_1>)
+- Worker 2: pending (Thread: <THREAD_ID_2>)
+- Worker 3: pending (Thread: <THREAD_ID_3>)
 
-All workers: join this thread, post startup acknowledgment, then load the khuym:executing skill.
+All workers: join this thread, post startup acknowledgment, then follow the embedded worker procedure.
 Coordinator: do not idle after this message. Keep polling `fetch_inbox(...)` and `fetch_topic(...)` until the swarm is complete.
 ```
 
@@ -49,15 +49,14 @@ Runtime call:
 `send_message(project_key=..., sender_name="<AGENT_MAIL_NAME>", to=["<COORDINATOR_AGENT_NAME>"], thread_id="<EPIC_ID>", topic="epic-<EPIC_ID>", ...)`
 
 ```
-Subject: [ONLINE] <CODEX_NICKNAME> / <AGENT_MAIL_NAME> ready
+Subject: [ONLINE] <AGENT_MAIL_NAME> ready
 Thread: <EPIC_ID>
 Topic: epic-<EPIC_ID>
 Importance: NORMAL
 
-Codex nickname: <CODEX_NICKNAME>
 Agent Mail name: <AGENT_MAIL_NAME>
 AGENTS.md: read
-Status: Loading khuym:executing skill.
+Status: Starting worker procedure.
 Next step: fetch inbox, then run `bv --robot-priority`, then claim the top executable bead.
 ```
 
@@ -80,9 +79,7 @@ Importance: NORMAL
 
 Bead closed: <bead-id>
 Title: <bead-title>
-Worker:
-- Codex nickname: <CODEX_NICKNAME>
-- Agent Mail name: <AGENT_MAIL_NAME>
+Worker: <AGENT_MAIL_NAME>
 Commit: <git-commit-hash>
 
 Summary of changes:
@@ -117,8 +114,7 @@ Topic: epic-<EPIC_ID>
 Importance: HIGH
 
 BLOCKED:
-- Codex nickname: <CODEX_NICKNAME>
-- Agent Mail name: <AGENT_MAIL_NAME>
+- Worker: <AGENT_MAIL_NAME>
 - Bead: <bead-id>
 
 Blocker type: [MISSING_CONTEXT | DEPENDENCY_NOT_MET | TECHNICAL_FAILURE | AMBIGUITY]
@@ -151,8 +147,7 @@ Topic: epic-<EPIC_ID>
 Importance: HIGH
 
 File conflict:
-- Codex nickname: <CODEX_NICKNAME>
-- Agent Mail name: <AGENT_MAIL_NAME>
+- Worker: <AGENT_MAIL_NAME>
 - Needs a file that is currently reserved.
 
 Requested file: <path/to/file>
@@ -247,7 +242,7 @@ You were spawned for epic <EPIC_ID>, but you have not posted your startup acknow
 
 Do this now, in order:
 1. Re-read `AGENTS.md`
-2. Post `[ONLINE]` with your Codex nickname and Agent Mail name
+2. Post `[ONLINE]` with your Agent Mail name
 3. Confirm `AGENTS.md: read`
 4. Run `fetch_inbox(...)`
 5. Only then continue into `bv --robot-priority`
@@ -370,8 +365,8 @@ Write to `.khuym/HANDOFF.json` when the swarm coordinator context exceeds 65%:
   },
   "active_workers": [
     {
-      "codex_nickname": "<CODEX_NICKNAME>",
       "agent_mail_name": "<AGENT_MAIL_NAME>",
+      "thread_id": "<THREAD_ID>",
       "current_bead": "<bead-id-3>",
       "status": "in_progress"
     }
@@ -379,10 +374,7 @@ Write to `.khuym/HANDOFF.json` when the swarm coordinator context exceeds 65%:
   "open_blockers": [
     {
       "bead_id": "<bead-id>",
-      "worker": {
-        "codex_nickname": "<CODEX_NICKNAME>",
-        "agent_mail_name": "<AGENT_MAIL_NAME>"
-      },
+      "worker": "<AGENT_MAIL_NAME>",
       "description": "<blocker description>",
       "thread_message_id": "<mail-id>"
     }

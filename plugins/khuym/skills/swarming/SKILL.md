@@ -22,7 +22,7 @@ metadata:
     - id: agent-mail
       kind: mcp_server
       server_names: [mcp_agent_mail]
-      config_sources: [repo_codex_config, global_codex_config]
+      config_sources: [repo_mcp_config, global_mcp_config]
       missing_effect: unavailable
       reason: Worker orchestration and coordination run through Agent Mail.
 ---
@@ -64,7 +64,7 @@ Prefer:
 
 Do not hide the real issue behind labels like `reservation conflict`, `startup drift`, or `runtime blocker` without explaining the practical effect.
 
-In Flywheel terms, this skill is the Khuym/Codex adaptation of the `ntm spawn` + human-overseer phase. The orchestrator launches the swarm, then tends it. Workers decide what to do next by using `bv --robot-priority` against the live bead graph.
+In Flywheel terms, this skill is the Khuym adaptation of the `ntm spawn` + human-overseer phase. The orchestrator (Claude Code) launches Codex CLI workers via the `codex` MCP tool, then tends the swarm. Workers decide what to do next by using `bv --robot-priority` against the live bead graph.
 
 ## When to Use This Skill
 
@@ -101,9 +101,9 @@ Prerequisites:
 ensure_project(human_key="<project-root-path>")
 register_agent(
   project_key="<project-root-path>",
-  name="<COORDINATOR_AGENT_NAME>",  # must be a valid adjective+noun Agent Mail identity
-  program="codex-cli",
-  model="gpt-5",
+  name="<COORDINATOR_AGENT_NAME>",  # auto-generated via macro_start_session()
+  program="claude-code",
+  model="claude-opus-4-6",
   task_description="swarm-coordinator"
 )
 ```
@@ -140,169 +140,167 @@ The epic thread is the coordination surface for:
 
 ---
 
-## Phase 3: Spawn Workers
+## Phase 3: Spawn Workers (Turn-Based)
 
-Spawn a pool of worker subagents in parallel:
+The orchestrator spawns Codex workers via the **codex-companion plugin runtime**. Each call is **synchronous** — it blocks until the worker completes its turn. The swarm operates in a **turn-based cycle**: spawn batch → wait → process results → spawn next batch.
 
-```
-Subagent(
-  identity="Worker: <codex-subagent-name>",
-  context=<scoped worker context from references/worker-template.md>
-)
-```
-
-`Subagent(...)` is the canonical contract. In an actual runtime, call whatever worker-spawn primitive is available, but preserve the same behavior: the orchestrator stays in control, each worker gets bounded scope by default, and workers report back through Agent Mail plus the live bead graph.
-
-In Codex, worker bootstrap is a two-step runtime handshake:
-
-1. Call `spawn_agent(...)` for the worker.
-2. Capture the returned Codex nickname from the spawn result.
-3. Immediately send follow-up startup context to that worker with:
-   - `codex_subagent_name`
-   - `project_key`
-   - `epic_id`
-   - `epic_topic`
-   - `feature_name`
-   - `coordinator_agent_name`
-   - optional `startup_hint`
-4. Only after that follow-up arrives may the worker call `macro_start_session(...)`.
-
-Do not invent worker names locally. The parent runtime result is the source of truth for the Codex nickname.
-
-Provide each worker:
-- Codex subagent nickname plus the bootstrap context needed to resolve Agent Mail identity
-- Feature name / epic ID
-- Instruction to load the `khuym:executing` skill immediately
-- Optional startup hint if there is an urgent ready bead, clearly labeled as a hint rather than an assignment
-- Scoped task-specific context by default; full parent-context inheritance only when explicitly needed
-
-Do **not** assign workers fixed tracks, fixed waves, or fixed bead lists as the normal case. Workers are expected to:
-1. register
-2. read `AGENTS.md` and project context
-3. post a startup acknowledgment with both identities
-4. fetch inbox updates
-5. call `bv --robot-priority`
-6. reserve files
-7. implement and report
-8. loop
-
-Mark spawned workers in `.khuym/STATE.md` under `## Active Workers` immediately after each spawn result.
-
-Use one line per worker:
-
-`- Codex: <codex-subagent-name> | Agent Mail: pending | Status: spawned | Current bead: -`
-
-The worker startup acknowledgment will later replace `pending` with the resolved Agent Mail name returned by `macro_start_session(...)`.
-
----
-
-## Phase 4: Monitor + Tend
-
-This is the "clockwork deity" phase. The swarm is live; now you manage it.
-
-Run a poll-act-repeat loop for as long as any of these are true:
-- a worker is `spawned`, `online`, `busy`, or `blocked`
-- a worker owes a startup acknowledgment, completion report, blocker alert, or handoff
-- `bv --robot-triage --graph-root <EPIC_ID>` still shows ready or in-progress work
-
-Every loop cycle must do all of the following:
-
-```
-fetch_inbox(
-  project_key="<project-root-path>",
-  agent_name="<COORDINATOR_AGENT_NAME>",
-  topic="<EPIC_TOPIC>"
-)
-fetch_topic(
-  project_key="<project-root-path>",
-  topic_name="<EPIC_TOPIC>"
-)
-```
-
-Then:
-1. Process every new worker message before moving on
-2. Update `.khuym/STATE.md` to reflect the latest worker status
-3. Reply, remind, or coordinate immediately when a worker is blocked or waiting
-4. Re-run the live graph check when a bead closes, a blocker clears, a worker goes silent, or the thread state looks stale
-
-Use live graph checks for oversight, not assignment:
+### 3a. Identify Ready Beads
 
 ```bash
 bv --robot-triage --graph-root <EPIC_ID>
 ```
 
-Do not park in passive wait mode while the swarm is active. If the thread is quiet, you still keep polling and tending until the swarm is complete or a real human decision is needed.
+From the graph, identify beads that are:
+- `open` status with all dependencies closed
+- Not file-conflicting with each other (no overlapping file scope)
 
-### Worker Startup Acknowledgments
+Group these into a **batch** of independent beads that can run in parallel.
 
-When a worker posts an online message:
-1. Confirm it joined the correct epic thread
-2. Confirm it reports both the Codex nickname and resolved Agent Mail name
-3. Confirm it explicitly says `AGENTS.md` was read
-4. Confirm it is loading `khuym:executing`
-5. Confirm the worker's next step is `fetch_inbox(...)`, then `bv --robot-priority`
-6. Update the matching `.khuym/STATE.md` worker entry from:
-   `Codex: <nickname> | Agent Mail: pending | Status: spawned | Current bead: -`
-   to:
-   `Codex: <nickname> | Agent Mail: <resolved-name> | Status: online | Current bead: -`
+### 3b. Pre-Register Workers (Sequential)
 
-If a worker does not post a startup acknowledgment:
-1. After 2 poll cycles: send a direct reminder telling the worker to re-read `AGENTS.md`, post `[ONLINE]`, and fetch inbox
-2. After 3 silent poll cycles: mark the worker `stalled-startup` in `.khuym/STATE.md` and send a second reminder
-3. After 5 silent poll cycles with ready work remaining: escalate to the user with the specific worker name, current graph state, and recovery attempts already made
+**Before spawning any worker**, the orchestrator registers all worker identities sequentially. This follows the `ntm spawn` pattern and avoids SQLite init lock contention.
 
-### Bead Completion Reports
+```bash
+# Register each worker sequentially via JSON-RPC (server-routed):
+WORKER1=$(.codex/am-rpc.sh register "<PROJECT_KEY>" codex-cli gpt-5.4 "worker bead-A" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])")
+WORKER2=$(.codex/am-rpc.sh register "<PROJECT_KEY>" codex-cli gpt-5.4 "worker bead-B" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])")
+```
 
-When a worker posts a completion report:
-1. Verify the bead is actually closed: `br status <bead-id>`
-2. Acknowledge receipt on the thread
-3. Confirm the report includes the bead ID, both worker identities, verification summary, and commit hash
-4. Update `.khuym/STATE.md` using the existing worker entry keyed by Codex nickname
-5. Re-check the graph to see what newly unblocked
+### 3c. Spawn Workers With Pre-Assigned Identity
 
-### Blocker Alerts
+Spawn Codex workers via the codex-companion plugin runtime. Each worker receives its identity in the prompt — no self-registration needed.
 
-When a worker posts a blocker alert:
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" task --write --full-access \
+  "AGENT_MAIL_NAME=$WORKER1. Implement bead <BEAD_ID>. <worker procedure>"
+```
+
+The `--full-access` flag enables `danger-full-access` sandbox, required on macOS for network access (Agent Mail). This is a local patch — see `patches/codex-companion-full-access.sh`.
+
+**Parallelism:** Multiple workers run in parallel via background Bash calls:
+
+```bash
+node codex-companion.mjs task --write --full-access "AGENT_MAIL_NAME=$WORKER1. ..." &
+node codex-companion.mjs task --write --full-access "AGENT_MAIL_NAME=$WORKER2. ..." &
+wait
+```
+
+Each worker prompt must include (see `references/worker-template.md` for full template):
+- `AGENT_MAIL_NAME` — the pre-registered identity
+- The specific bead ID and description to implement
+- Project key, epic ID, feature name, coordinator name, epic topic
+- The **full worker procedure** inline (read context → post ONLINE → reserve files → implement → verify → close → report)
+- **Do not** say "load the khuym:executing skill" — embed the procedure directly
+
+**Do NOT use `mcp__codex__codex` raw MCP tool** — it hangs.
+
+### 3d. Process Worker Responses
+
+Each worker call returns stdout containing the worker's execution report. Parse each response for:
+
+1. **Agent Mail name** — confirms the pre-registered identity was used
+2. **Bead status** — did the worker close the bead successfully?
+3. **Verification results** — tests pass? build clean?
+4. **Commit hash** — the atomic git commit for this bead
+5. **Blockers** — did the worker hit a problem it couldn't resolve?
+
+For follow-up turns (fix verification, provide context), spawn a new worker call for the same bead with additional instructions. Course corrections can also be routed through Agent Mail.
+
+### 3e. Update State
+
+After processing all responses in the batch:
+
+1. Update `.khuym/STATE.md` under `## Active Workers`:
+
+   For completed workers:
+   `- Worker: <agent-mail-name> | Status: done | Bead: <bead-id>`
+
+   For blocked workers:
+   `- Worker: <agent-mail-name> | Status: blocked | Bead: <bead-id>`
+
+2. Check Agent Mail inbox for any messages posted during the batch:
+   ```
+   fetch_inbox(
+     project_key="<project-root-path>",
+     agent_name="<COORDINATOR_AGENT_NAME>",
+     topic="<EPIC_TOPIC>"
+   )
+   ```
+
+3. Re-check the graph for newly unblocked work:
+   ```bash
+   bv --robot-triage --graph-root <EPIC_ID>
+   ```
+
+---
+
+## Phase 4: Tend Between Turns
+
+Tending happens **between spawn batches**, not during worker execution (the orchestrator is blocked while workers run). This is the coordination phase.
+
+### Turn Cycle
+
+Repeat until no executable work remains:
+
+```
+1. PROCESS: Parse all worker responses from the last batch
+2. VERIFY:  Confirm bead closures (br status <bead-id>)
+3. INBOX:   Fetch Agent Mail (fetch_inbox + fetch_topic)
+4. GRAPH:   Re-check live bead graph (bv --robot-triage)
+5. HANDLE:  Resolve blockers, file conflicts, course corrections
+6. PLAN:    Identify next batch of independent ready beads
+7. SPAWN:   Start next batch (back to Phase 3b)
+```
+
+### Handling Blockers
+
+When a worker's response reports a blocker:
 1. Assess severity:
-   - **Resolvable with existing context:** reply on the thread
-   - **Needs another worker's status or release:** coordinate via thread
-   - **Needs human judgment:** escalate to user quickly
-2. Do not let workers spin silently on blockers
-3. Record blocker state in `.khuym/STATE.md` on the same worker entry that tracks both names
+   - **Resolvable with existing context:** spawn a new worker call for the same bead with the missing context included
+   - **Needs another worker's output:** wait for that worker, then spawn a follow-up
+   - **Needs human judgment:** escalate to user immediately
+2. Record blocker in `.khuym/STATE.md`
+3. Do not re-spawn the worker until the blocker is resolved
 
-### File Conflict Requests
+### Handling Failed Verification
 
-When a worker requests a file another worker holds:
-1. Identify holder and requester
-2. Coordinate one of:
-   - holder releases at a safe checkpoint
-   - requester waits
-   - requester defers and creates a follow-up bead
-3. Log the resolution in `.khuym/STATE.md` using the existing two-name worker entries
+When a worker reports verification failure:
+1. Read the failure output from the worker's response
+2. Spawn a follow-up worker call for the same bead with the error context: "Verification failed: <error>. Fix and re-verify."
+3. **Maximum 2 fix turns.** After 2 failed follow-up attempts, escalate to user.
 
-### Silence Ladder
+### Handling File Conflicts
 
-Silence is not neutral. Treat it as a coordination problem to resolve.
+When a batch has potential file overlaps:
+1. Do not include conflicting beads in the same batch
+2. If conflict is discovered mid-execution (worker reports), use `codex-reply` to instruct the blocked worker to defer
+3. Sequence conflicting beads across separate batches
 
-- After 2 quiet poll cycles from a worker that should have reported: send a reminder
-- After 3 quiet poll cycles from an active worker: send a direct status check telling the worker to fetch inbox, re-read `AGENTS.md` if needed, and report back on the epic thread
-- After 5 quiet poll cycles while ready work, in-progress work, or unresolved reservations still exist: mark the worker stalled in `.khuym/STATE.md` and escalate to the user with the concrete status, what you already tried, and why the swarm cannot safely continue unattended
+### Course Corrections
 
-### Overseer Broadcasts
+Use **follow-up worker calls** or **Agent Mail messages** for:
+- Providing missing context a worker needs
+- Fixing verification failures
+- Redirecting a worker that drifted from the bead spec
+- Relaying a locked decision update from CONTEXT.md
 
-Use broadcast messages when the swarm needs a shared correction, for example:
-- "re-read AGENTS.md after compaction"
-- "do not touch file X until blocker Y is cleared"
-- "new user decision: D7 is locked, honor it"
-- "fetch inbox now before claiming new work"
+### Agent Mail Coordination
+
+Between batches, always:
+1. `fetch_inbox(project_key, agent_name=<COORDINATOR>, topic=<EPIC_TOPIC>)` — read worker messages
+2. `fetch_topic(project_key, topic_name=<EPIC_TOPIC>)` — check full thread state
+3. Acknowledge important messages: `acknowledge_message(project_key, agent_name, message_id)`
+4. Post status updates to the epic thread when significant state changes occur
 
 ### Context Checkpoint
 
-After each significant event, estimate your own context budget.
+After each batch completes, estimate your context budget.
 
 **If context >65% used:**
 1. Write `.khuym/HANDOFF.json` with complete swarm state (see `references/message-templates.md` → **Handoff JSON template**)
-2. Broadcast a pause notification on the epic thread
+2. Post a pause notification on the epic thread via `send_message`
 3. Report to user that the orchestrator paused safely and how to resume
 4. Do NOT abandon the swarm without writing `HANDOFF.json`
 
@@ -351,7 +349,7 @@ Stop and diagnose before continuing if you see:
 - **Worker implements multiple beads at once** — self-routing does not mean parallelizing within one worker
 - **Orchestrator edits source files** — role violation
 - **Workers are idle but ready beads exist** — fetch inbox, inspect the thread, and recover the swarm instead of waiting for the user
-- **No Agent Mail activity for >5 poll cycles while work remains** — workers may be stuck, off-thread, or context-exhausted; run the silence ladder
+- **No Agent Mail activity after multiple turn batches while work remains** — workers may be stuck or context-exhausted; check worker responses for blockers, use `codex-reply` for recovery
 - **The same file conflict repeats** — bead decomposition may be too coarse; escalate
 - **Workers stop using `bv --robot-priority` and start freelancing** — re-broadcast the execution contract
 - **Build/test failures accumulate without intervention** — create fix beads or stop and escalate

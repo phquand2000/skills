@@ -22,7 +22,8 @@ C) Skip the startup post but send a quick completion report after the first bead
 Expected pass:
 - Choose `B`
 - Cite the hard rule that work does not begin before `[ONLINE]`
-- Mention both identities, `AGENTS.md` read confirmation, and inbox polling
+- Explain that `macro_start_session()` is called first to obtain Agent Mail name
+- Mention `AGENTS.md` read confirmation and startup acknowledgment before any bead work
 
 ---
 
