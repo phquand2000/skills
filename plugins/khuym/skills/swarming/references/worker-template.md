@@ -33,35 +33,44 @@ You implement **exactly one bead** per invocation, then return. Do NOT loop or p
 ## Agent Mail Setup
 1. Project key: <PROJECT_KEY>
 2. Your identity is **pre-registered** by the orchestrator. Use `AGENT_MAIL_NAME` as given — do NOT register again.
-3. For sending messages, use `am` CLI (server auto-routes when running) or `.codex/am-rpc.sh`:
-   ```bash
-   am mail send --project "<PROJECT_KEY>" --from <AGENT_MAIL_NAME> --to <TO> --subject "<SUBJECT>" --body "<BODY>" --thread-id "<EPIC_ID>" --json
-   ```
-4. Set a shared topic tag for this epic:
+3. **PREFERRED: use `mcp__agent_mail__*` MCP tools natively.** They are loaded via the agent-mail HTTP MCP server (configured in `~/.codex/config.toml`). Examples:
+   - `mcp__agent_mail__send_message(project_key=..., sender_name=..., to=[...], subject=..., body_md=..., thread_id=..., topic=...)`
+   - `mcp__agent_mail__file_reservation_paths(project_key=..., agent_name=..., paths=[...], reason=...)`
+   - `mcp__agent_mail__macro_contact_handshake(project_key=..., from_agent=..., to_agent=..., auto_accept=true)`
+   - `mcp__agent_mail__release_file_reservations(project_key=..., agent_name=...)`
+4. **DO NOT use `am` CLI directly** for write operations — it conflicts with the running server's mailbox lock. The MCP tools route through the server's connection pool and avoid lock contention.
+5. **Contact handshake required before first `send_message`.** If `send_message` fails with "Contact approval required", call `mcp__agent_mail__macro_contact_handshake` first with `auto_accept=true`, then retry.
+6. Set a shared topic tag for this epic:
    ```
    EPIC_TOPIC="epic-<EPIC_ID>"
    ```
-4. Post a startup acknowledgment to the epic thread/topic:
+7. Handshake with the coordinator, then post a startup acknowledgment:
    ```
-   send_message(
+   mcp__agent_mail__macro_contact_handshake(
+     project_key="<PROJECT_KEY>",
+     from_agent=AGENT_MAIL_NAME,
+     to_agent="<COORDINATOR_AGENT_NAME>",
+     auto_accept=true
+   )
+   mcp__agent_mail__send_message(
      project_key="<PROJECT_KEY>",
      sender_name=AGENT_MAIL_NAME,
      to=["<COORDINATOR_AGENT_NAME>"],
      subject="[ONLINE] " + AGENT_MAIL_NAME + " ready",
-     body_md="Agent Mail name: " + AGENT_MAIL_NAME + "\nAGENTS.md: read\nStatus: Starting worker procedure.\nNext step: reserve files, implement assigned bead.",
+     body_md="Agent Mail name: " + AGENT_MAIL_NAME + "\nAGENTS.md: read\nStatus: Starting worker procedure.",
      thread_id="<EPIC_ID>",
      topic="<EPIC_TOPIC>"
    )
    ```
-5. Poll inbox updates immediately after the startup acknowledgment:
+8. Poll inbox updates immediately after startup:
    ```
-   fetch_inbox(
+   mcp__agent_mail__fetch_inbox(
      project_key="<PROJECT_KEY>",
      agent_name=AGENT_MAIL_NAME,
      topic="<EPIC_TOPIC>"
    )
    ```
-6. Treat `AGENT_MAIL_NAME` as authoritative for all later Agent Mail calls.
+9. Treat `AGENT_MAIL_NAME` as authoritative for all later Agent Mail calls.
 
 ## Context Boundary
 You are a bounded worker subagent. Use the task-specific context you were given first, and only request broader parent context if the current bead genuinely needs it.
@@ -82,12 +91,12 @@ br show <BEAD_ID>
 3. Post `[ONLINE]` to the epic thread with your Agent Mail name and `AGENTS.md: read` confirmation
 
 ### Step 2: Reserve Files
-Reserve every file this bead will modify:
+Reserve every file this bead will modify (use **project-relative paths**, not absolute):
 ```
-file_reservation_paths(
+mcp__agent_mail__file_reservation_paths(
   project_key="<PROJECT_KEY>",
   agent_name=AGENT_MAIL_NAME,
-  paths=[<files from bead scope>],
+  paths=[<project-relative paths from bead scope>],
   reason="Working bead <BEAD_ID>"
 )
 ```
@@ -112,11 +121,11 @@ git commit -m "feat(<BEAD_ID>): <summary>"
 ```
 Release file reservations:
 ```
-release_file_reservations(project_key="<PROJECT_KEY>", agent_name=AGENT_MAIL_NAME)
+mcp__agent_mail__release_file_reservations(project_key="<PROJECT_KEY>", agent_name=AGENT_MAIL_NAME)
 ```
 Post completion report to the epic thread:
 ```
-send_message(
+mcp__agent_mail__send_message(
   project_key="<PROJECT_KEY>",
   sender_name=AGENT_MAIL_NAME,
   to=["<COORDINATOR_AGENT_NAME>"],
@@ -151,8 +160,16 @@ If you detect context compaction (gaps, summarized conversation), STOP immediate
 1. `AGENTS.md`
 2. `history/<FEATURE_NAME>/CONTEXT.md`
 3. `br show <BEAD_ID>`
-4. Your active file reservations (query Agent Mail)
+4. Your active file reservations (call `mcp__agent_mail__list_agents` or query inbox)
 Only then continue.
+
+## Prerequisite: Codex MCP Configuration
+Workers spawned via codex-companion need agent-mail MCP loaded. **One-time setup** (orchestrator side):
+```bash
+# Add agent-mail HTTP MCP to Codex global config (~/.codex/config.toml):
+codex mcp add agent-mail --url http://127.0.0.1:8765/api
+```
+The HTTP transport routes through the running Agent Mail server (port 8765), avoiding mailbox lock conflicts that occur with stdio transport when a server is already running. Verify with `codex mcp list`.
 
 ## What You Must NOT Do
 - Do not loop or claim additional beads — one bead per invocation
@@ -196,8 +213,9 @@ You implement **exactly one bead** per invocation, then return. Do NOT loop or p
 1. Project key: /home/user/projects/myapp
 2. Your identity is pre-registered: AGENT_MAIL_NAME=CrimsonDog. Do NOT register again.
 3. Set topic: epic-br-epic-001
-4. Post startup acknowledgment with send_message(..., sender_name=CrimsonDog, to=["GreenCastle"], thread_id="br-epic-001", topic="epic-br-epic-001") including `AGENTS.md: read`
-5. Immediately run fetch_inbox(..., agent_name=CrimsonDog, topic="epic-br-epic-001")
+4. Run `mcp__agent_mail__macro_contact_handshake(from_agent="CrimsonDog", to_agent="GreenCastle", auto_accept=true)`
+5. Post startup with `mcp__agent_mail__send_message(sender_name="CrimsonDog", to=["GreenCastle"], thread_id="br-epic-001", topic="epic-br-epic-001", subject="[ONLINE] CrimsonDog ready", body_md="...AGENTS.md: read...")`
+6. Immediately run `mcp__agent_mail__fetch_inbox(agent_name="CrimsonDog", topic="epic-br-epic-001")`
 
 ## Your Task
 Implement bead br-012: "Add token refresh middleware"

@@ -74,12 +74,22 @@ If any file does not exist, note the absence and proceed.
 
 ---
 
-## Step 3: Post ONLINE
+## Step 3: Handshake + Post ONLINE
 
-Before touching any files, post to the epic thread:
+**First-time contact requires handshake.** If `send_message` fails with "Contact approval required", call this first:
+```
+mcp__agent_mail__macro_contact_handshake(
+  project_key="<PROJECT_KEY>",
+  from_agent=AGENT_MAIL_NAME,
+  to_agent="<COORDINATOR_AGENT_NAME>",
+  auto_accept=true
+)
+```
+
+Then post to the epic thread:
 
 ```
-send_message(
+mcp__agent_mail__send_message(
   project_key="<PROJECT_KEY>",
   sender_name=AGENT_MAIL_NAME,
   to=["<COORDINATOR_AGENT_NAME>"],
@@ -92,7 +102,7 @@ send_message(
 
 Then immediately poll:
 ```
-fetch_inbox(
+mcp__agent_mail__fetch_inbox(
   project_key="<PROJECT_KEY>",
   agent_name=AGENT_MAIL_NAME,
   topic="<EPIC_TOPIC>"
@@ -114,7 +124,7 @@ Understand: description, dependencies, verification criteria, file scope, decisi
 
 Reserve every file this bead will modify:
 ```
-file_reservation_paths(
+mcp__agent_mail__file_reservation_paths(
   project_key="<PROJECT_KEY>",
   agent_name=AGENT_MAIL_NAME,
   paths=[<files from bead scope>],
@@ -124,7 +134,7 @@ file_reservation_paths(
 
 **If reservation returns a conflict:**
 ```
-send_message(
+mcp__agent_mail__send_message(
   project_key="<PROJECT_KEY>",
   sender_name=AGENT_MAIL_NAME,
   to=["<COORDINATOR_AGENT_NAME>"],
@@ -134,7 +144,7 @@ send_message(
   topic="<EPIC_TOPIC>"
 )
 ```
-Stop. Do not proceed without reservations. Keep polling `fetch_inbox(...)` while waiting.
+Stop. Do not proceed without reservations. Keep polling `mcp__agent_mail__fetch_inbox(...)` while waiting.
 
 ---
 
@@ -176,7 +186,7 @@ npm run lint
 1. Read the failure carefully, fix root cause, re-run (max 2 attempts)
 2. If still failing after 2 attempts:
 ```
-send_message(
+mcp__agent_mail__send_message(
   project_key="<PROJECT_KEY>",
   sender_name=AGENT_MAIL_NAME,
   to=["<COORDINATOR_AGENT_NAME>"],
@@ -209,7 +219,7 @@ One commit per bead. Do not batch multiple beads.
 
 ### 7c. Release file reservations
 ```
-release_file_reservations(
+mcp__agent_mail__release_file_reservations(
   project_key="<PROJECT_KEY>",
   agent_name=AGENT_MAIL_NAME,
   paths=[<files-you-modified>]
@@ -220,7 +230,7 @@ Release **before** sending the completion report.
 
 ### 7d. Send completion report
 ```
-send_message(
+mcp__agent_mail__send_message(
   project_key="<PROJECT_KEY>",
   sender_name=AGENT_MAIL_NAME,
   to=["<COORDINATOR_AGENT_NAME>"],
@@ -280,12 +290,19 @@ Stop and reassess if you notice:
 |--------|------|
 | Confirm identity | Use `AGENT_MAIL_NAME` from prompt (pre-registered by orchestrator) |
 | Read bead | `br show <id>` |
-| Reserve files | `file_reservation_paths(project_key=..., agent_name=..., paths=[...], reason=...)` |
-| Release files | `release_file_reservations(project_key=..., agent_name=..., paths=[...])` |
+| Reserve files | `mcp__agent_mail__file_reservation_paths(project_key=..., agent_name=..., paths=[...], reason=...)` |
+| Release files | `mcp__agent_mail__release_file_reservations(project_key=..., agent_name=..., paths=[...])` |
 | Close bead | `br close <id> --reason "..."` |
-| Send mail | `send_message(project_key=..., sender_name=..., to=[...], thread_id=..., topic=..., subject=..., body_md=...)` |
-| Check inbox | `fetch_inbox(project_key=..., agent_name=..., topic=...)` |
-| Check epic thread | `fetch_topic(project_key=..., topic_name=...)` |
+| Send mail | `mcp__agent_mail__send_message(project_key=..., sender_name=..., to=[...], thread_id=..., topic=..., subject=..., body_md=...)` |
+| Check inbox | `mcp__agent_mail__fetch_inbox(project_key=..., agent_name=..., topic=...)` |
+| Check epic thread | `mcp__agent_mail__fetch_topic(project_key=..., topic_name=...)` |
+| First-time contact | `mcp__agent_mail__macro_contact_handshake(from_agent=..., to_agent=..., auto_accept=true)` |
+
+**Setup prerequisite:** Workers need `agent-mail` MCP loaded via HTTP. Orchestrator one-time setup:
+```bash
+codex mcp add agent-mail --url http://127.0.0.1:8765/api
+```
+Verify with `codex mcp list`. HTTP transport avoids stdio mailbox lock conflicts.
 
 ---
 
