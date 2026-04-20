@@ -160,6 +160,13 @@ Codex plugins are installed from a local marketplace. The standard flow is:
 
 The canonical skill layout lives directly under [`plugins/khuym/skills/`](plugins/khuym/skills).
 
+The packaged MCP manifest at [`plugins/khuym/.mcp.json`](plugins/khuym/.mcp.json) mixes hosted services and local-development services:
+
+- hosted/broadly portable: `exa`, `deepwiki`
+- local/runtime-dependent: `gkg`, `morph-mcp`, `MCP_DOCKER`
+
+After install, use `node .codex/khuym_status.mjs --json` on an onboarded repo as the source of truth for local service readiness instead of assuming every advertised MCP server is immediately usable.
+
 If you also want the raw skill mirror for agent tooling outside the Codex plugin runtime, sync it into `~/.agents/skills`:
 
 ```bash

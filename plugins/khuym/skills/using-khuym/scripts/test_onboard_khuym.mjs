@@ -1017,6 +1017,8 @@ test("packaged Khuym inventory stays fully covered and the docs explain the decl
     "get_definition",
     "read_definitions",
   ]);
+  assert.equal(pluginMcp.mcpServers["morph-mcp"].env.ENABLED_TOOLS, "codebase_search");
+  assert.deepEqual(pluginMcp.mcpServers["morph-mcp"].includeTools, ["codebase_search"]);
 });
 
 test("getNodeRuntimeStatus enforces the minimum supported major version", () => {

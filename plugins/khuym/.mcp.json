@@ -41,9 +41,9 @@
       "command": "npx",
       "args": ["-y", "@morphllm/morphmcp"],
       "env": {
-        "ENABLED_TOOLS": "warpgrep_codebase_search"
+        "ENABLED_TOOLS": "codebase_search"
       },
-      "includeTools": ["warpgrep_codebase_search"]
+      "includeTools": ["codebase_search"]
     }
   }
 }
