@@ -39,6 +39,7 @@ const MANAGED_SUPPORT_FILES = {
   "khuym_status.mjs": path.join(HOOK_TEMPLATES_DIR, "khuym_status.mjs"),
   "khuym_state.mjs": path.join(USING_KHUYM_SCRIPTS_DIR, "khuym_state.mjs"),
   "khuym_dependencies.mjs": path.join(USING_KHUYM_SCRIPTS_DIR, "khuym_dependencies.mjs"),
+  "khuym_reservations.mjs": path.join(USING_KHUYM_SCRIPTS_DIR, "khuym_reservations.mjs"),
 };
 
 function readDependencyHealth(repoRoot) {

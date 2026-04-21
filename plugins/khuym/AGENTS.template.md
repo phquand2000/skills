@@ -41,6 +41,7 @@ khuym:using-khuym
   state.json          ← machine-readable routing snapshot for agents and tools
   STATE.md            ← current phase and focus
   HANDOFF.json        ← pause/resume artifact
+  reservations.json   ← local file reservations for same-session Codex swarms
 
 history/<feature>/
   CONTEXT.md          ← locked decisions
@@ -57,6 +58,7 @@ history/learnings/
 .codex/
   khuym_status.mjs    ← read-only scout command for onboarding, state, and handoff
   khuym_state.mjs     ← shared state helpers used by the scout command
+  khuym_reservations.mjs ← local reservation helper used by swarming, executing, and hooks
 
 ## Codex Guardrails
 

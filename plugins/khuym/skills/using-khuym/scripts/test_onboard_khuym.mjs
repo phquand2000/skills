@@ -26,6 +26,17 @@ function runSessionStartHook(root, payload = { cwd: root }, env = {}) {
   return JSON.parse(stdout);
 }
 
+function runPreToolUseHook(root, payload, env = {}) {
+  const hookPath = path.join(root, ".codex", "hooks", "khuym_pre_tool_use.mjs");
+  const stdout = execFileSync("node", [hookPath], {
+    cwd: root,
+    encoding: "utf8",
+    input: JSON.stringify(payload),
+    env: { ...process.env, ...env },
+  });
+  return JSON.parse(stdout);
+}
+
 async function startMockGkgServer(routes) {
   const child = spawn(
     process.execPath,
@@ -97,6 +108,7 @@ test("applyRepo creates full repo onboarding with node-based hooks", () => {
     assert.ok(fs.existsSync(path.join(root, ".codex", "khuym_status.mjs")));
     assert.ok(fs.existsSync(path.join(root, ".codex", "khuym_state.mjs")));
     assert.ok(fs.existsSync(path.join(root, ".codex", "khuym_dependencies.mjs")));
+    assert.ok(fs.existsSync(path.join(root, ".codex", "khuym_reservations.mjs")));
     assert.match(
       fs.readFileSync(path.join(root, ".codex", "hooks.json"), "utf8"),
       /node \.codex\/hooks\/khuym_session_start\.mjs/,
@@ -207,6 +219,122 @@ test("installed khuym_status script reports onboarding and state", () => {
     assert.ok(status.dependency_health);
     assert.ok(typeof status.dependency_health.summary.missing_dependencies === "number");
     assert.ok(status.next_reads.includes("AGENTS.md"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("reservation helper stores, lists, and releases local reservations", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-reservations-"));
+
+  try {
+    applyRepo(root, false);
+
+    const helperPath = path.join(root, ".codex", "khuym_reservations.mjs");
+    const reserveText = execFileSync(
+      "node",
+      [helperPath, "reserve", "--agent", "Peirce", "--bead", "br-1", "--path", "src/**", "--ttl", "600", "--json"],
+      { cwd: root, encoding: "utf8" },
+    );
+    const reservePayload = JSON.parse(reserveText);
+    assert.equal(reservePayload.ok, true);
+    assert.equal(reservePayload.reservation.agent, "Peirce");
+
+    const listPayload = JSON.parse(
+      execFileSync("node", [helperPath, "list", "--active-only", "--json"], {
+        cwd: root,
+        encoding: "utf8",
+      }),
+    );
+    assert.equal(listPayload.reservations.length, 1);
+    assert.equal(listPayload.reservations[0].bead_id, "br-1");
+
+    const releasePayload = JSON.parse(
+      execFileSync("node", [helperPath, "release", "--agent", "Peirce", "--bead", "br-1", "--json"], {
+        cwd: root,
+        encoding: "utf8",
+      }),
+    );
+    assert.equal(releasePayload.released_count, 1);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pre-tool hook blocks write-heavy bash commands that hit another worker reservation", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-hook-block-"));
+
+  try {
+    applyRepo(root, false);
+    fs.mkdirSync(path.join(root, "src"), { recursive: true });
+    fs.writeFileSync(path.join(root, "src", "app.ts"), "export const value = 1;\n", "utf8");
+
+    execFileSync(
+      "node",
+      [
+        path.join(root, ".codex", "khuym_reservations.mjs"),
+        "reserve",
+        "--agent",
+        "Curie",
+        "--bead",
+        "br-7",
+        "--path",
+        "src/**",
+        "--json",
+      ],
+      { cwd: root, encoding: "utf8" },
+    );
+
+    const payload = runPreToolUseHook(root, {
+      cwd: root,
+      agent_name: "Peirce",
+      tool_input: {
+        command: "git add src/app.ts",
+      },
+    });
+
+    assert.equal(payload.continue, false);
+    assert.match(payload.systemMessage, /local reservations blocked/i);
+    assert.match(payload.systemMessage, /Curie/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pre-tool hook warns instead of blocking when agent identity is unavailable", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-hook-warn-"));
+
+  try {
+    applyRepo(root, false);
+    fs.mkdirSync(path.join(root, "src"), { recursive: true });
+    fs.writeFileSync(path.join(root, "src", "app.ts"), "export const value = 1;\n", "utf8");
+
+    execFileSync(
+      "node",
+      [
+        path.join(root, ".codex", "khuym_reservations.mjs"),
+        "reserve",
+        "--agent",
+        "Curie",
+        "--bead",
+        "br-7",
+        "--path",
+        "src/**",
+        "--json",
+      ],
+      { cwd: root, encoding: "utf8" },
+    );
+
+    const payload = runPreToolUseHook(root, {
+      cwd: root,
+      tool_input: {
+        command: "git add src/app.ts",
+      },
+    });
+
+    assert.equal(payload.continue, true);
+    assert.match(payload.systemMessage, /warning instead of blocking/i);
+    assert.match(payload.systemMessage, /KHUYM_AGENT_NAME/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

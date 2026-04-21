@@ -359,8 +359,12 @@ function normalizeActiveWorkers(value) {
     .filter((item) => item && typeof item === "object" && !Array.isArray(item))
     .map((worker) => ({
       codex_name: typeof worker.codex_name === "string" ? worker.codex_name : "",
-      agent_mail_name:
-        typeof worker.agent_mail_name === "string" ? worker.agent_mail_name : "",
+      agent_id:
+        typeof worker.agent_id === "string"
+          ? worker.agent_id
+          : typeof worker.agent_mail_name === "string"
+            ? worker.agent_mail_name
+            : "",
       status: typeof worker.status === "string" ? worker.status : "",
       bead_id: typeof worker.bead_id === "string" ? worker.bead_id : "",
     }));
