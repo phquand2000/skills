@@ -39,6 +39,8 @@ The normal same-session Codex contract is bead-scoped and short-lived:
 
 If you hit a real blocker, return `[BLOCKED]` with enough detail for the orchestrator to act. Do not wait silently for follow-up messages that may never arrive.
 
+A routine status check from the parent is observational, not permission to abandon healthy in-flight work. Keep working your current bead unless you are already done, truly blocked, or the parent explicitly asks for a safe stop or handoff.
+
 ## Loop Overview
 
 ```text

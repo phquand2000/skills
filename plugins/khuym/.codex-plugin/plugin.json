@@ -1,6 +1,6 @@
 {
   "name": "khuym",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Khuym: validate-first multi-agent skills for phase contracts, stories, swarming, and execution",
   "author": {
     "name": "hoangnb24",

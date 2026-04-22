@@ -99,5 +99,16 @@ Planned validation steps for this hardening pass:
 - The orchestrator contract now treats inbox polling and coordination as the default live-loop behavior while a swarm is active.
 - The failure modes reported by the user are now directly represented in both the skill text and the pressure scenarios.
 
+## Follow-up Migration Note
+
+Later Khuym revisions removed Agent Mail from the normal same-session swarm path and moved the coordination surface to the parent Codex thread plus local reservations. That changed one important runtime assumption:
+
+- a quiet worker is often just still doing its bounded bead
+- repeated `wait_agent(...)` timeouts are not, by themselves, evidence of failure
+- routine status requests should stay non-interrupting
+- `send_input(..., interrupt=true)` should be reserved for explicit aborts, confirmed deadlocks, or emergency safe-handoff recovery
+
+When updating `swarming`, `executing`, or the worker/message templates in the post-Agent-Mail model, preserve the "keep tending" mindset but remove any implication that healthy in-flight workers should be preempted just because they are quiet.
+
 Created: 2026-03-31
 Mode: RED targets -> GREEN edits -> REFACTOR tightening

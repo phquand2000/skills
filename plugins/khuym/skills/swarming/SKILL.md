@@ -43,7 +43,7 @@ For normal same-session Codex swarming, Khuym now uses:
 
 This is intentionally local-first. There is no external inbox, mail server, or thread bootstrap step for same-session swarms.
 
-## Hard Rule — Active Swarm Never Idles
+## Hard Rule — Active Swarm Keeps Tending
 
 If workers are spawned, busy, blocked, or expected to finish soon, you are not in a waiting phase. You are in a tending phase.
 
@@ -54,7 +54,7 @@ While the swarm is active, keep looping through:
 - local reservation state via `node .codex/khuym_reservations.mjs`
 - spawned-agent results via `wait_agent(...)`, `send_input(...)`, and `close_agent(...)` when needed
 
-Silence is work for the orchestrator. If a worker has not finished and the graph still has runnable work, you keep tending until either the swarm is complete or the next move truly requires human judgment.
+Silence is work for the orchestrator, but silence alone is not failure. Keep tending the graph and reservations while workers run, and only interrupt a worker when the evidence shows a real stuck condition or the user explicitly wants it stopped.
 
 ## Why The Contract Changed
 
@@ -164,7 +164,7 @@ Every loop cycle should do all of the following:
    ```
 4. Update `.khuym/state.json` after every meaningful worker event.
 
-Use `wait_agent(...)` sparingly. Prefer longer waits over busy polling, and do not stop the whole swarm just because one worker is still running.
+Use `wait_agent(...)` sparingly. Prefer longer waits over busy polling, batch worker ids when possible, and do not stop the whole swarm just because one worker is still running.
 
 ### Worker Result Handling
 
@@ -186,12 +186,17 @@ When a worker returns:
 
 ### Silence Ladder
 
-Because the parent thread is the coordination surface, silence means a worker has not finished yet. Treat it as a coordination problem, not as proof of progress.
+Because the parent thread is the coordination surface, silence usually means a worker has not finished yet. Do not treat a quiet worker as failed just because `wait_agent(...)` timed out.
 
 - After one long wait timeout with no result: inspect reservation state and current graph status
-- After two timeouts: send a bounded status request with `send_input(...)`
-- After three timeouts with no useful response: interrupt with `send_input(..., interrupt=true)` and ask for a blocker summary or safe handoff
-- After five timeouts while work remains blocked or reserved: escalate to the user with the worker name, current graph state, reservation evidence, and recovery attempts already made
+- If reservations, bead ownership, and graph state still look healthy: keep waiting
+- Send a non-interrupting `send_input(...)` status request only when the evidence suggests a real coordination problem, such as:
+  - the worker runtime is far beyond the bead's expected size
+  - another worker is blocked behind the held reservation
+  - the bead graph and reservation state no longer match the reported worker status
+  - you need a concrete blocker summary to decide the next rescue move
+- Do not use `send_input(..., interrupt=true)` as a routine silence step. Reserve interrupts for explicit user aborts, confirmed deadlocks, or emergency safe-handoff requests when the swarm cannot recover without preempting the worker
+- If the swarm remains blocked after one bounded status request and the reservation/graph evidence still looks unhealthy: escalate to the user with the worker name, current graph state, reservation evidence, and recovery attempts already made
 
 ### File Conflict Resolution
 

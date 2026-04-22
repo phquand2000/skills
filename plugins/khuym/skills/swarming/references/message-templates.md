@@ -103,16 +103,18 @@ Suggested next action:
 
 ## 5. Status Request From Orchestrator
 
-Use with `send_input(...)` when a worker has been quiet for too long.
+Use with `send_input(...)` only when reservation state, graph state, or downstream blocking suggests a real coordination problem. This is a non-interrupting status check by default.
 
 ```text
 Status check for epic <EPIC_ID>.
 
-Reply by finishing your current run with one of:
-- [DONE]
-- [BLOCKED]
-- [HANDOFF]
-- [NOOP]
+Continue your current bead if it is healthy.
+
+Reply early only if one of these is true:
+- you are already [DONE]
+- you are [BLOCKED]
+- you need [HANDOFF]
+- there is [NOOP] because no safe bead is actually in progress
 
 If you still hold reservations, include them explicitly.
 ```
