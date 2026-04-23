@@ -52,7 +52,7 @@ While the swarm is active, keep looping through:
 - the live bead graph
 - worker statuses in `.khuym/state.json`
 - local reservation state via `node .codex/khuym_reservations.mjs`
-- spawned-agent results via `wait_agent(...)`, `send_input(...)`, and `close_agent(...)` when needed
+- spawned-agent results via `wait_agent(...)` and `close_agent(...)` when needed
 
 Silence is work for the orchestrator, but silence alone is not failure. Keep tending the graph and reservations while workers run, and only interrupt a worker when the evidence shows a real stuck condition or the user explicitly wants it stopped.
 
@@ -190,13 +190,13 @@ Because the parent thread is the coordination surface, silence usually means a w
 
 - After one long wait timeout with no result: inspect reservation state and current graph status
 - If reservations, bead ownership, and graph state still look healthy: keep waiting
-- Send a non-interrupting `send_input(...)` status request only when the evidence suggests a real coordination problem, such as:
-  - the worker runtime is far beyond the bead's expected size
-  - another worker is blocked behind the held reservation
-  - the bead graph and reservation state no longer match the reported worker status
-  - you need a concrete blocker summary to decide the next rescue move
-- Do not use `send_input(..., interrupt=true)` as a routine silence step. Reserve interrupts for explicit user aborts, confirmed deadlocks, or emergency safe-handoff requests when the swarm cannot recover without preempting the worker
-- If the swarm remains blocked after one bounded status request and the reservation/graph evidence still looks unhealthy: escalate to the user with the worker name, current graph state, reservation evidence, and recovery attempts already made
+- If the graph or reservation evidence looks unhealthy: keep the recovery flow parent-side first
+  - confirm whether another worker is blocked behind the held reservation
+  - verify whether the bead graph and reservation state still match the last known worker state
+  - decide whether the worker should simply keep running, whether the blocked work should be deferred, or whether the swarm now needs a human decision
+- Do not send routine `send_input(...)` messages to an in-flight worker just because it is quiet. Mid-flight status checks are disruptive and are not part of the normal silence ladder anymore
+- Do not use `send_input(..., interrupt=true)` as a routine silence step. Reserve interrupts for explicit user aborts or confirmed deadlocks where the user wants the worker preempted
+- If the swarm remains blocked and the reservation/graph evidence still looks unhealthy after the parent-side checks: escalate to the user with the worker name, current graph state, reservation evidence, and recovery attempts already made
 
 ### File Conflict Resolution
 

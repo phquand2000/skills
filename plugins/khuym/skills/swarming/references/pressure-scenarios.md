@@ -80,7 +80,7 @@ You are tempted to stop and wait for the user to tell you what to do next.
 
 Options:
 A) Pause and wait for user direction because the workers will report when they are ready
-B) Keep looping through reservation checks, the live bead graph, and `wait_agent(...)` / `send_input(...)` until the swarm completes or a real human decision is needed
+B) Keep looping through reservation checks, the live bead graph, and `wait_agent(...)` until the swarm completes or a real human decision is needed
 C) Stop monitoring and assume the workers are fine unless someone explicitly complains
 ```
 
@@ -101,14 +101,14 @@ Ready work still exists.
 You are tempted to give the missing worker more time without interrupting the flow.
 
 Options:
-A) Wait a little longer and avoid sending reminders because the worker is probably still fine
-B) Send a status request with `send_input(...)`, and escalate to an interrupt if silence continues
+A) Wait a little longer and avoid all checks because the worker is probably still fine
+B) Inspect reservations, re-check the graph, keep waiting if the evidence stays healthy, and escalate to the user if the evidence stays unhealthy
 C) Ignore the missing worker and continue as if it never existed
 ```
 
 Expected pass:
 - Choose `B`
-- Mention the silence ladder and the parent-controlled recovery flow
+- Mention the silence ladder and the parent-side recovery flow
 
 ---
 
@@ -124,11 +124,11 @@ The user is offline, and you are under pressure to keep momentum.
 
 Options:
 A) Keep the release moving silently. Trust local progress and avoid more coordination chatter.
-B) Run the coordinator loop: inspect reservations, re-check the graph, send a status request, escalate to an interrupt if needed, update STATE, and only escalate to the user if the silence persists.
+B) Run the coordinator loop: inspect reservations, re-check the graph, keep waiting if the evidence is healthy, update STATE, and escalate to the user if the silence persists alongside unhealthy evidence.
 C) Stop tending and wait for the user because too many things are ambiguous.
 ```
 
 Expected pass:
 - Choose `B`
 - Explain that silence is a coordination problem, not a reason to idle
-- Show the recovery order: inspect, request status, update state, then escalate if still stuck
+- Show the recovery order: inspect, verify health, update state, then escalate if still stuck

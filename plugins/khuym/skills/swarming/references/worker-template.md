@@ -68,7 +68,7 @@ Optional. Use this as a priority candidate only. The live bead graph still wins.
 - `[BLOCKED]`: concrete blocker, reservation holder if relevant, exact next action needed
 - `[HANDOFF]`: `.khuym/HANDOFF.json` written plus safe resume point
 - `[NOOP]`: no safe bead available right now
-- If the parent sends a routine status request: continue the current bead unless you are already done, truly blocked, or explicitly asked to stop safely
+- Do not expect routine mid-flight status checks from the parent. Keep working the current bead until you can return `[DONE]`, `[BLOCKED]`, `[HANDOFF]`, or `[NOOP]`
 
 ## What You Must NOT Do
 - Do not edit without a reservation

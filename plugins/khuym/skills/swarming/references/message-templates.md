@@ -101,23 +101,17 @@ Suggested next action:
 
 ---
 
-## 5. Status Request From Orchestrator
+## 5. Quiet Worker Note
 
-Use with `send_input(...)` only when reservation state, graph state, or downstream blocking suggests a real coordination problem. This is a non-interrupting status check by default.
+There is no routine mid-flight status-request template anymore.
 
-```text
-Status check for epic <EPIC_ID>.
+If a worker is quiet, the orchestrator should keep the recovery flow parent-side:
+- inspect reservations
+- re-check the live bead graph
+- wait for the worker result
+- escalate to the user if the graph and reservation evidence stays unhealthy
 
-Continue your current bead if it is healthy.
-
-Reply early only if one of these is true:
-- you are already [DONE]
-- you are [BLOCKED]
-- you need [HANDOFF]
-- there is [NOOP] because no safe bead is actually in progress
-
-If you still hold reservations, include them explicitly.
-```
+Do not send `send_input(...)` to a healthy in-flight worker just to ask whether it is still working.
 
 ---
 
