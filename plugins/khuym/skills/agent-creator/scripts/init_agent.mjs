@@ -35,7 +35,11 @@ try {
   const reasoning = args.reasoning?.trim() || "medium";
   const sandbox = args.sandbox?.trim() || "read-only";
   const nicknames = parseCsv(args.nicknames);
-  const skillPath = args["skill-path"]?.trim();
+  const skillPaths = parseMultiValue(args["skill-path"]);
+  const mcpServers = [
+    ...parseMcpUrlEntries(args["mcp-server-url"]),
+    ...parseMcpCommandEntries(args["mcp-server-command"]),
+  ];
 
   const toml = buildToml({
     name,
@@ -45,7 +49,8 @@ try {
     sandbox,
     nicknames,
     instructions: normalizeMultiline(args.instructions),
-    skillPath,
+    skillPaths,
+    mcpServers,
   });
 
   if (args["dry-run"]) {
@@ -69,6 +74,7 @@ try {
 
 function parseArgs(argv) {
   const parsed = {};
+  const repeatable = new Set(["skill-path", "mcp-server-url", "mcp-server-command"]);
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -87,11 +93,28 @@ function parseArgs(argv) {
       throw new Error(`Missing value for --${key}`);
     }
 
-    parsed[key] = value;
+    if (repeatable.has(key)) {
+      if (!Array.isArray(parsed[key])) {
+        parsed[key] = [];
+      }
+      parsed[key].push(value);
+    } else {
+      parsed[key] = value;
+    }
     index += 1;
   }
 
   return parsed;
+}
+
+function parseMultiValue(value) {
+  if (!value) {
+    return [];
+  }
+
+  return (Array.isArray(value) ? value : [value])
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 function parseCsv(value) {
@@ -107,6 +130,54 @@ function parseCsv(value) {
 
 function normalizeMultiline(value) {
   return value.replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trimEnd();
+}
+
+function parseMcpUrlEntries(value) {
+  return parseMultiValue(value).map((entry) => {
+    const separator = entry.indexOf("=");
+    if (separator <= 0) {
+      throw new Error(
+        `Invalid --mcp-server-url entry: ${entry}. Use NAME=http://host/mcp.`,
+      );
+    }
+
+    const name = entry.slice(0, separator).trim();
+    const url = entry.slice(separator + 1).trim();
+    if (!name || !url) {
+      throw new Error(
+        `Invalid --mcp-server-url entry: ${entry}. Use NAME=http://host/mcp.`,
+      );
+    }
+
+    return { name, type: "url", url };
+  });
+}
+
+function parseMcpCommandEntries(value) {
+  return parseMultiValue(value).map((entry) => {
+    const separator = entry.indexOf("=");
+    if (separator <= 0) {
+      throw new Error(
+        `Invalid --mcp-server-command entry: ${entry}. Use NAME=command|arg1|arg2.`,
+      );
+    }
+
+    const name = entry.slice(0, separator).trim();
+    const commandParts = entry
+      .slice(separator + 1)
+      .split("|")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (!name || commandParts.length === 0) {
+      throw new Error(
+        `Invalid --mcp-server-command entry: ${entry}. Use NAME=command|arg1|arg2.`,
+      );
+    }
+
+    const [command, ...args] = commandParts;
+    return { name, type: "command", command, args };
+  });
 }
 
 function buildToml(config) {
@@ -126,8 +197,21 @@ function buildToml(config) {
 
   lines.push(`developer_instructions = """\n${config.instructions}\n"""`);
 
-  if (config.skillPath) {
-    lines.push("", "[[skills.config]]", `path = ${tomlString(config.skillPath)}`, "enabled = true");
+  for (const skillPath of config.skillPaths) {
+    lines.push("", "[[skills.config]]", `path = ${tomlString(skillPath)}`, "enabled = true");
+  }
+
+  for (const server of config.mcpServers) {
+    lines.push("", `[mcp_servers.${server.name}]`);
+    if (server.type === "url") {
+      lines.push(`url = ${tomlString(server.url)}`);
+      continue;
+    }
+
+    lines.push(`command = ${tomlString(server.command)}`);
+    if (server.args.length > 0) {
+      lines.push(`args = [${server.args.map((value) => tomlString(value)).join(", ")}]`);
+    }
   }
 
   return `${lines.join("\n")}\n`;
@@ -157,6 +241,9 @@ function printHelp() {
     [--sandbox read-only] \\
     [--nicknames "QA,Helper"] \\
     [--skill-path .codex/skills/qa-browser-verify] \\
+    [--skill-path .codex/skills/another-skill] \\
+    [--mcp-server-url gkg=http://localhost:27495/mcp] \\
+    [--mcp-server-command 'MCP_DOCKER=docker|mcp|gateway|run'] \\
     [--dry-run] [--force]
 `);
 }
