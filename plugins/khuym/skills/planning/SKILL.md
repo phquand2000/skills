@@ -7,28 +7,28 @@ description: >-
   and story map, then creates real Beads for that phase only.
 metadata:
   ecosystem: khuym
-  dependencies: |
-    - id: beads-cli
+  dependencies:
+    beads-cli:
       kind: command
       command: br
       missing_effect: unavailable
       reason: Planning creates and links real bead graphs with br.
-    - id: beads-viewer
+    beads-viewer:
       kind: command
       command: bv
       missing_effect: degraded
       reason: Planning relies on graph-aware triage and validation checks.
-    - id: cass-cli
+    cass-cli:
       kind: command
       command: cass
       missing_effect: degraded
       reason: Planning searches prior sessions to avoid re-solving problems.
-    - id: cass-memory
+    cass-memory:
       kind: command
       command: cm
       missing_effect: degraded
       reason: Planning retrieves reusable playbook context before deep work.
-    - id: gkg
+    gkg:
       kind: mcp_server
       server_names: [gkg]
       config_sources: [repo_codex_config, global_codex_config, plugin_mcp_manifest]

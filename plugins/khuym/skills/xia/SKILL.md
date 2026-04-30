@@ -2,14 +2,14 @@
 name: xia
 description: Research-first feature discovery for unfamiliar, ambiguous, or high-risk implementation work. Use when Codex should map the real repo stack, find reusable local code, check upstream patterns, and verify current official docs before planning or implementing a feature.
 metadata:
-  dependencies: |
-    - id: exa
+  dependencies:
+    exa:
       kind: mcp_server
       server_names: [exa]
       config_sources: [global_codex_config, plugin_mcp_manifest]
       missing_effect: degraded
       reason: Xia uses Exa to research current official documentation and recent implementation guidance.
-    - id: deepwiki
+    deepwiki:
       kind: mcp_server
       server_names: [deepwiki]
       config_sources: [global_codex_config, plugin_mcp_manifest]

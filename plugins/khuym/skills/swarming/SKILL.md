@@ -8,13 +8,13 @@ metadata:
   position: 5-of-9
   upstream: validating
   downstream: reviewing
-  dependencies: |
-    - id: beads-cli
+  dependencies:
+    beads-cli:
       kind: command
       command: br
       missing_effect: degraded
       reason: Swarm tending checks bead state and closure through br.
-    - id: beads-viewer
+    beads-viewer:
       kind: command
       command: bv
       missing_effect: unavailable
@@ -53,7 +53,7 @@ Prerequisites:
 
 1. Confirm readiness with `bv --robot-triage --graph-root <EPIC_ID>`.
 2. Sweep expired reservations.
-3. Spawn bounded worker subagents with `references/worker-template.md`.
+3. Choose each ready bead parent-side, then spawn bounded worker subagents with `references/worker-template.md`.
 4. Record `agent_id`, `agent_nickname`, bead, and status in `.khuym/state.json`.
 5. Tend the live graph, reservations, and worker results until the phase is clean.
 6. Write `.khuym/HANDOFF.json` before pausing near context limits.
@@ -64,6 +64,7 @@ Load `references/swarming-protocol.md` for detailed spawn context, tend-loop rul
 ## Hard Rules
 
 - Never spawn workers before validation approves execution.
+- Never let workers pick beads themselves; pass one explicit `assigned_bead_id` from the orchestrator.
 - Never let workers edit without local reservations.
 - Do not resolve file conflicts by asking workers to be careful; adjust reservations or bead scope.
 - Silence alone is not failure. Do not send routine mid-flight `send_input(...)` check-ins.

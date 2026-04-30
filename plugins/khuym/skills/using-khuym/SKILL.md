@@ -8,43 +8,43 @@ description: >-
 metadata:
   version: '2.2'
   ecosystem: khuym
-  dependencies: |
-    - id: nodejs-runtime
+  dependencies:
+    nodejs-runtime:
       kind: command
       command: node
       missing_effect: unavailable
       reason: The bootstrap scripts run in Node.js.
-    - id: beads-cli
+    beads-cli:
       kind: command
       command: br
       missing_effect: degraded
       reason: Bead planning and execution flows rely on br.
-    - id: beads-viewer
+    beads-viewer:
       kind: command
       command: bv
       missing_effect: degraded
       reason: Triage and readiness checks rely on bv robot commands.
-    - id: cass-cli
+    cass-cli:
       kind: command
       command: cass
       missing_effect: degraded
       reason: Session-history lookups are part of the default workflow.
-    - id: cass-memory
+    cass-memory:
       kind: command
       command: cm
       missing_effect: degraded
       reason: Memory context retrieval is part of the default workflow.
-    - id: bash-shell
+    bash-shell:
       kind: command
       command: bash
       missing_effect: degraded
       reason: Dependency-contract verification runs bash helper scripts.
-    - id: gkg-cli
+    gkg-cli:
       kind: command
       command: gkg
       missing_effect: unavailable
       reason: Supported-repo planning may require gkg index and gkg server start during session readiness.
-    - id: gkg-mcp
+    gkg-mcp:
       kind: mcp_server
       server_names: [gkg]
       config_sources: [repo_codex_config, global_codex_config, plugin_mcp_manifest]
@@ -112,9 +112,21 @@ Use the scout's `supported_languages` and `primary_supported_language` fields in
 
 Every packaged Khuym skill must declare one of three dependency states:
 
-1. Command-backed: `metadata.dependencies` entries with `kind: command`, `command`, truthful `missing_effect`, and `reason`.
-2. MCP-backed: entries with `kind: mcp_server`, `server_names`, `config_sources`, truthful `missing_effect`, and `reason`.
-3. Dependency-free: `metadata.dependencies: []`.
+1. Command-backed: declare each required CLI under `metadata.dependencies.<dependency-id>` with `kind: command`, `command`, truthful `missing_effect`, and `reason`.
+2. MCP-backed: declare each required MCP server under `metadata.dependencies.<dependency-id>` with `kind: mcp_server`, `server_names`, `config_sources`, truthful `missing_effect`, and `reason`.
+3. Dependency-free: declare `metadata.dependencies: []`.
+
+Use dependency IDs as mapping keys instead of YAML arrays of objects:
+
+```yaml
+metadata:
+  dependencies:
+    beads-cli:
+      kind: command
+      command: br
+      missing_effect: unavailable
+      reason: The skill reads and updates beads.
+```
 
 If the normal operator path uses both a CLI and MCP server for the same product, declare both separately. For example, `using-khuym` depends on `gkg` CLI readiness commands and the `gkg` MCP server for architecture discovery.
 

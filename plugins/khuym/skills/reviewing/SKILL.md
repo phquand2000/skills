@@ -7,13 +7,13 @@ metadata:
   position: 7-of-9
   upstream: swarming
   downstream: compounding
-  dependencies: |
-    - id: beads-cli
+  dependencies:
+    beads-cli:
       kind: command
       command: br
       missing_effect: unavailable
       reason: Reviewing creates review beads and closes the epic through br.
-    - id: beads-viewer
+    beads-viewer:
       kind: command
       command: bv
       missing_effect: degraded

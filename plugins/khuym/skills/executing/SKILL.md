@@ -2,22 +2,17 @@
 name: executing
 description: >-
   Use when you are a worker subagent spawned by khuym:swarming and need the
-  bead-scoped implementation loop. Read context, pick one live bead, reserve
-  files locally, implement, verify, close, release, and report [DONE],
-  [BLOCKED], [HANDOFF], or [NOOP] to the parent Codex thread.
+  bead-scoped implementation loop. Read context, accept the orchestrator-assigned
+  bead, reserve files locally, implement, verify, close, release, and report
+  [DONE], [BLOCKED], [HANDOFF], or [NOOP] to the parent Codex thread.
 metadata:
   ecosystem: khuym
-  dependencies: |
-    - id: beads-cli
+  dependencies:
+    beads-cli:
       kind: command
       command: br
       missing_effect: unavailable
       reason: Workers read, update, and close beads through br.
-    - id: beads-viewer
-      kind: command
-      command: bv
-      missing_effect: unavailable
-      reason: Worker self-routing relies on bv robot priority output.
 ---
 
 # Executing — Worker Loop
@@ -29,7 +24,7 @@ You are a worker subagent spawned by swarming. Your job is one bead: implement i
 ## Core Contract
 
 ```text
-Initialize -> Pick One Bead -> Reserve Files -> Implement -> Verify -> Close -> Release -> Return
+Initialize -> Accept Assigned Bead -> Reserve Files -> Implement -> Verify -> Close -> Release -> Return
 ```
 
 If context usage becomes unsafe:
@@ -51,12 +46,13 @@ Open `references/worker-details.md` for expanded commands, result templates, han
    - If `.khuym/HANDOFF.json` clearly belongs to this worker run, restore it.
    - Use the parent-provided Codex nickname consistently as the reservation identity.
 
-2. **Pick One Executable Bead**
-   - Run `bv --robot-priority`.
-   - Choose one top-ranked open bead with no unresolved dependencies and bounded scope.
-   - If the parent gave a startup hint, re-check the live graph before claiming it.
-   - Read the bead with `br show <bead-id>`.
-   - Return `[NOOP]` if no safe executable bead exists.
+2. **Accept The Assigned Bead**
+   - The orchestrator owns bead selection. Do not run `bv --robot-priority`, `bv --robot-triage`, or `br ready` to choose work.
+   - Require exactly one parent-provided `assigned_bead_id` for this worker run.
+   - Treat `assigned_bead_id` as the only bead you may execute.
+   - Read the assigned bead with `br show <assigned-bead-id>`.
+   - Return `[NOOP]` if no assigned bead exists or it is already unavailable.
+   - Return `[BLOCKED]` if the assigned bead is blocked, ambiguous, or inconsistent with locked context.
 
 3. **Reserve Files Locally**
    - Reserve every file or glob before writing:
@@ -108,7 +104,6 @@ After compaction, reread `AGENTS.md`, `CONTEXT.md`, `br show <bead-id>`, and act
 
 | Action | Command |
 |---|---|
-| Get priority bead | `bv --robot-priority` |
 | Read bead | `br show <id>` |
 | Reserve files | `node .codex/khuym_reservations.mjs reserve ...` |
 | List reservations | `node .codex/khuym_reservations.mjs list --active-only --json` |
@@ -118,6 +113,7 @@ After compaction, reread `AGENTS.md`, `CONTEXT.md`, `br show <bead-id>`, and act
 ## Red Flags
 
 - writing outside your reserved scope
+- selecting a bead yourself instead of using the parent-provided `assigned_bead_id`
 - claiming a bead without reserving first
 - keeping multiple beads open in one worker run
 - waiting silently for the parent instead of returning `[BLOCKED]`

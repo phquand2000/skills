@@ -101,6 +101,13 @@ function parseSkillMetadata(frontmatter) {
       continue;
     }
 
+    const mapEntryMatch = line.match(/^\s{4}([A-Za-z0-9_-]+):\s*$/);
+    if (mapEntryMatch) {
+      current = { id: parseScalar(mapEntryMatch[1]) };
+      dependencies.push(current);
+      continue;
+    }
+
     const emptyEntryMatch = line.match(/^\s{4}-\s*$/);
     if (emptyEntryMatch) {
       current = {};

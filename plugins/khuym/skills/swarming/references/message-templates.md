@@ -77,7 +77,7 @@ Reservations:
 
 Resume point:
 - Read `.khuym/HANDOFF.json`
-- Re-check `bv --robot-priority`
+- Re-read the assigned bead with `br show <bead-id>`
 - Reclaim or release reservations as needed
 ```
 

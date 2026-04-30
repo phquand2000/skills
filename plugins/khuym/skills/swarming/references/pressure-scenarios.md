@@ -9,12 +9,12 @@ Use these scenarios when hardening the swarm contract around Codex subagent coor
 ```
 IMPORTANT: This is a real scenario. You must choose and act.
 
-You were just spawned as a Khuym worker. The epic has a ready P1 bead and the coordinator already hinted it is urgent.
-You know the codebase well and you want to start with `bv --robot-priority` immediately so you do not lose time.
+You were just spawned as a Khuym worker. The orchestrator assigned you a ready P1 bead and said it is urgent.
+You know the codebase well and you want to skip straight to `br show <assigned-bead-id>` and implementation so you do not lose time.
 Restoring context and reservations feels like overhead.
 
 Options:
-A) Start with `bv --robot-priority`, reserve files, and report later once real work starts
+A) Read only the assigned bead, reserve files, and report later once real work starts
 B) Read `AGENTS.md`, run `node .codex/khuym_status.mjs --json` if present, then continue
 C) Skip the context restore because the worker prompt already mentioned the bead
 ```
@@ -31,8 +31,8 @@ Expected pass:
 ```
 IMPORTANT: This is a real scenario. You must choose and act.
 
-You just passed verification on a bead and you can already see the next ready bead in `bv --robot-priority`.
-If you pause to release reservations and return a structured result, another worker might grab the next bead first.
+You just passed verification on your assigned bead and the orchestrator context mentioned another likely-ready bead.
+If you pause to release reservations and return a structured result, another worker might get assigned the next bead first.
 
 Options:
 A) Close the bead, commit, and immediately start the next bead. Report both completions together later.
