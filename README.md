@@ -143,6 +143,7 @@ The README is the top-level overview. The operational contract lives in the repo
 
 - [`AGENTS.md`](AGENTS.md) defines the live Khuym chain, gates, bead workflow, and session rules.
 - [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md) is the canonical architecture and vocabulary contract.
+- [`docs/evaluation/khuym-plugin-eval.md`](docs/evaluation/khuym-plugin-eval.md) defines the reusable plugin evaluation workflow.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) covers skill format, marketplace packaging, and documentation checks.
 
 ## Install In Codex

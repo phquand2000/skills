@@ -22,7 +22,12 @@ docs/architecture/*
 !docs/examples/
 docs/examples/*
 !docs/examples/golden-path.md
+!docs/evaluation/
+docs/evaluation/*
+!docs/evaluation/khuym-plugin-eval.md
 !docs/legal/
 !docs/legal/privacy.md
 !docs/legal/terms.md
 .spikes
+plugins/khuym/.plugin-eval/*
+!plugins/khuym/.plugin-eval/benchmark.json
