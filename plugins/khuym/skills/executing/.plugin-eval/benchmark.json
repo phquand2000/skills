@@ -1,0 +1,75 @@
+{
+  "kind": "plugin-eval-benchmark",
+  "schemaVersion": 2,
+  "version": 2,
+  "targetKind": "skill",
+  "targetName": "executing",
+  "runner": {
+    "type": "codex-cli",
+    "model": "gpt-5.4-mini",
+    "sandbox": "workspace-write",
+    "approvalPolicy": "never",
+    "extraArgs": []
+  },
+  "workspace": {
+    "sourcePath": "/Users/themrb/Documents/personal/skills",
+    "setupMode": "copy",
+    "preserve": "on-failure"
+  },
+  "targetProvisioning": {
+    "mode": "isolated-skill-home"
+  },
+  "verifiers": {
+    "commands": [
+      "rg -n \"assigned_bead_id|Assigned bead ID|orchestrator owns bead selection\" plugins/khuym/skills/executing/SKILL.md plugins/khuym/skills/swarming/SKILL.md plugins/khuym/skills/swarming/references/worker-template.md",
+      "! rg -n 'Worker self-routing|Get priority bead|pick one executable bead from bv --robot-priority|Run bv --robot-priority' plugins/khuym/skills/executing/SKILL.md plugins/khuym/skills/swarming/SKILL.md plugins/khuym/skills/swarming/references/worker-template.md"
+    ]
+  },
+  "notes": [
+    "These scenarios validate the worker/orchestrator boundary for Khuym same-session swarms.",
+    "The orchestrator must pick the bead and pass assigned_bead_id; the worker must not choose replacement work from bv/br ready.",
+    "Benchmark means real codex exec runs. There is no simulated dry-run mode."
+  ],
+  "setupQuestions": [
+    "Does the worker refuse to choose work when assigned_bead_id is missing?",
+    "Does the worker validate only the assigned bead with br show before reserving files?",
+    "Does the swarming prompt pass assigned_bead_id in startup context?",
+    "Do pressure scenarios and handoff templates avoid teaching worker-side bv priority selection?",
+    "Does dependency metadata keep bv on swarming, not executing?"
+  ],
+  "scenarios": [
+    {
+      "id": "assigned-bead-worker",
+      "title": "Worker Executes Assigned Bead",
+      "purpose": "Validate that executing behaves as a worker loop for one parent-assigned bead.",
+      "userInput": "Use the local Codex skill \"executing\". Review its worker startup contract and make the smallest improvement needed so a worker executes only the parent-provided assigned_bead_id. Do not introduce worker-side bead selection.",
+      "successChecklist": [
+        "The worker contract requires assigned_bead_id from the parent.",
+        "The worker reads the assigned bead with br show.",
+        "The worker does not run bv --robot-priority, bv --robot-triage, or br ready to choose work."
+      ]
+    },
+    {
+      "id": "missing-assignment-boundary",
+      "title": "Missing Assignment Boundary",
+      "purpose": "Check whether the worker narrows instead of self-routing when no bead is assigned.",
+      "userInput": "Use the local Codex skill \"executing\". Harden the documented behavior for a worker that starts without assigned_bead_id. It should return NOOP or BLOCKED and ask the orchestrator for assignment, not pick a bead itself.",
+      "successChecklist": [
+        "Missing assigned_bead_id is documented as NOOP or BLOCKED.",
+        "The replacement bead decision remains with swarming/orchestrator.",
+        "No worker-side priority-picking command is added."
+      ]
+    },
+    {
+      "id": "swarming-template-assignment",
+      "title": "Swarming Assigns The Bead",
+      "purpose": "Validate that swarming and the worker prompt template carry the selected bead explicitly.",
+      "userInput": "Use the local Codex swarming/executing skill docs. Ensure the swarming worker prompt includes assigned_bead_id and says the orchestrator chooses the exact ready bead before spawning or re-spawning a worker.",
+      "successChecklist": [
+        "The worker template includes Assigned bead ID.",
+        "The placeholder table documents ASSIGNED_BEAD_ID as orchestrator-selected.",
+        "Pressure scenarios and handoff templates no longer instruct workers to use bv --robot-priority."
+      ]
+    }
+  ]
+}

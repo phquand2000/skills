@@ -1,0 +1,769 @@
+{
+  "kind": "benchmark-run",
+  "createdAt": "2026-04-30T13:29:18.787Z",
+  "mode": "codex-cli",
+  "target": {
+    "kind": "skill",
+    "path": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing",
+    "entryPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/SKILL.md",
+    "name": "executing",
+    "relativePath": "plugins/khuym/skills/executing"
+  },
+  "codexVersion": "codex-cli 0.125.0",
+  "config": {
+    "source": "file",
+    "path": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark.json",
+    "runnerType": "codex-cli",
+    "model": "gpt-5.4-mini",
+    "sandbox": "workspace-write",
+    "approvalPolicy": "never",
+    "scenarioCount": 3,
+    "workspaceSourcePath": "/Users/themrb/Documents/personal/skills",
+    "workspaceSetupMode": "copy",
+    "workspacePreserve": "on-failure",
+    "targetProvisioningMode": "isolated-skill-home",
+    "verifierCount": 2
+  },
+  "runDirectory": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14",
+  "usageLogPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl",
+  "resultPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/benchmark-run.json",
+  "summary": {
+    "scenarioCount": 3,
+    "completedScenarios": 3,
+    "failedScenarios": 0,
+    "sampleCount": 3,
+    "usageAvailability": "present",
+    "averageInputTokens": 653690.67,
+    "averageOutputTokens": 9149.33,
+    "averageTotalTokens": 662840,
+    "generatedFileCount": 1,
+    "generatedTestFileCount": 1,
+    "toolCallCount": 0,
+    "shellCommandCount": 0,
+    "failedShellCommands": 0,
+    "verifierPassCount": 6,
+    "verifierFailCount": 0
+  },
+  "scenarios": [
+    {
+      "id": "assigned-bead-worker",
+      "title": "Worker Executes Assigned Bead",
+      "purpose": "Validate that executing behaves as a worker loop for one parent-assigned bead.",
+      "successChecklist": [
+        "The worker contract requires assigned_bead_id from the parent.",
+        "The worker reads the assigned bead with br show.",
+        "The worker does not run bv --robot-priority, bv --robot-triage, or br ready to choose work."
+      ],
+      "status": "completed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 148323,
+      "prompt": "Use the local Codex skill \"executing\". Review its worker startup contract and make the smallest improvement needed so a worker executes only the parent-provided assigned_bead_id. Do not introduce worker-side bead selection.",
+      "finalMessagePath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/01-assigned-bead-worker/final-message.txt",
+      "finalMessagePreview": "Updated the worker startup contract in [plugins/khuym/skills/executing/SKILL.md](/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-assigned-bead-worker-FDkXmc/workspace/plugins/khuym/skills/executing/SKILL.md#L90) so the worker now treats the parent-provided `assigned_bead_id` as the only bead it may reserve, execute, or close.\n\nI did not add any worker-side bead selection.\n\nI also released the temporary reservation on that file. No tests were run because this was a docs-only contract tweak.\n\nOne environment note: `gkg index` completed successfully, but `gkg server start` could not bind to port 27495 in this sandbox.",
+      "rawEventLogPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/01-assigned-bead-worker/codex.stdout.jsonl",
+      "stderrLogPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/01-assigned-bead-worker/codex.stderr.log",
+      "usage": {
+        "input_tokens": 648400,
+        "output_tokens": 10047,
+        "total_tokens": 658447,
+        "raw": {
+          "input_tokens": 648400,
+          "cached_input_tokens": 596224,
+          "output_tokens": 10047,
+          "reasoning_output_tokens": 6267
+        }
+      },
+      "usageAvailability": "present",
+      "telemetry": {
+        "threadId": "019dde8d-2c82-77b3-b45c-c658e0fc1c8d",
+        "eventCount": 67,
+        "ignoredLineCount": 0,
+        "finalStatus": "completed",
+        "errorMessages": [],
+        "toolCallCount": 0,
+        "shellCommandCount": 0,
+        "failedShellCommandCount": 0,
+        "toolNames": [],
+        "shellCommands": [],
+        "usage": {
+          "input_tokens": 648400,
+          "output_tokens": 10047,
+          "total_tokens": 658447,
+          "raw": {
+            "input_tokens": 648400,
+            "cached_input_tokens": 596224,
+            "output_tokens": 10047,
+            "reasoning_output_tokens": 6267
+          }
+        },
+        "usageAvailability": "present"
+      },
+      "workspacePath": null,
+      "workspaceSummary": {
+        "addedFileCount": 0,
+        "modifiedFileCount": 2,
+        "deletedFileCount": 0,
+        "changedFileCount": 2,
+        "generatedFileCount": 0,
+        "generatedTestFileCount": 0,
+        "changedTestFileCount": 0,
+        "changedTextLineDelta": 15,
+        "changedFiles": [
+          {
+            "path": ".khuym/reservations.json",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 191,
+            "lineCountAfter": 206,
+            "lineDelta": 15
+          },
+          {
+            "path": "plugins/khuym/skills/executing/SKILL.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 349,
+            "lineCountAfter": 349,
+            "lineDelta": 0
+          }
+        ],
+        "allChanges": [
+          {
+            "path": ".khuym/reservations.json",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 191,
+            "lineCountAfter": 206,
+            "lineDelta": 15
+          },
+          {
+            "path": "plugins/khuym/skills/executing/SKILL.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 349,
+            "lineCountAfter": 349,
+            "lineDelta": 0
+          }
+        ]
+      },
+      "workspaceChanges": [
+        {
+          "path": ".khuym/reservations.json",
+          "status": "modified",
+          "isText": true,
+          "lineCountBefore": 191,
+          "lineCountAfter": 206,
+          "lineDelta": 15
+        },
+        {
+          "path": "plugins/khuym/skills/executing/SKILL.md",
+          "status": "modified",
+          "isText": true,
+          "lineCountBefore": 349,
+          "lineCountAfter": 349,
+          "lineDelta": 0
+        }
+      ],
+      "generatedCode": {
+        "checks": [
+          {
+            "id": "coverage-artifacts-unavailable",
+            "category": "coverage",
+            "severity": "info",
+            "status": "info",
+            "message": "No coverage artifacts were found for this target.",
+            "evidence": [
+              "../../../../../var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-assigned-bead-worker-FDkXmc/workspace"
+            ],
+            "remediation": [
+              "Generate `lcov.info`, `coverage.xml`, or an Istanbul coverage JSON file if you want coverage scoring."
+            ],
+            "source": "core"
+          }
+        ],
+        "metrics": [
+          {
+            "id": "coverage_artifact_count",
+            "category": "coverage",
+            "value": 0,
+            "unit": "files",
+            "band": "info",
+            "source": "core"
+          }
+        ],
+        "artifacts": []
+      },
+      "verifierResults": [
+        {
+          "command": "rg -n \"assigned_bead_id|Assigned bead ID|orchestrator owns bead selection\" plugins/khuym/skills/executing/SKILL.md plugins/khuym/skills/swarming/SKILL.md plugins/khuym/skills/swarming/references/worker-template.md",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 102,
+          "stdoutPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/01-assigned-bead-worker/verifier-1.stdout.log",
+          "stderrPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/01-assigned-bead-worker/verifier-1.stderr.log"
+        },
+        {
+          "command": "! rg -n 'Worker self-routing|Get priority bead|pick one executable bead from bv --robot-priority|Run bv --robot-priority' plugins/khuym/skills/executing/SKILL.md plugins/khuym/skills/swarming/SKILL.md plugins/khuym/skills/swarming/references/worker-template.md",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 119,
+          "stdoutPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/01-assigned-bead-worker/verifier-2.stdout.log",
+          "stderrPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/01-assigned-bead-worker/verifier-2.stderr.log"
+        }
+      ],
+      "installedTargetPath": "/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-assigned-bead-worker-FDkXmc/home/.codex/skills/executing",
+      "codexHomePath": "/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-assigned-bead-worker-FDkXmc/home/.codex"
+    },
+    {
+      "id": "missing-assignment-boundary",
+      "title": "Missing Assignment Boundary",
+      "purpose": "Check whether the worker narrows instead of self-routing when no bead is assigned.",
+      "successChecklist": [
+        "Missing assigned_bead_id is documented as NOOP or BLOCKED.",
+        "The replacement bead decision remains with swarming/orchestrator.",
+        "No worker-side priority-picking command is added."
+      ],
+      "status": "completed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 130171,
+      "prompt": "Use the local Codex skill \"executing\". Harden the documented behavior for a worker that starts without assigned_bead_id. It should return NOOP or BLOCKED and ask the orchestrator for assignment, not pick a bead itself.",
+      "finalMessagePath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/02-missing-assignment-boundary/final-message.txt",
+      "finalMessagePreview": "Updated the worker startup contract so a missing `assigned_bead_id` now explicitly returns `[NOOP]` or `[BLOCKED]` and asks the orchestrator for assignment, instead of self-selecting a bead.\n\nChanged:\n- [`plugins/khuym/skills/executing/SKILL.md`](./plugins/khuym/skills/executing/SKILL.md:94) now says missing/empty `assigned_bead_id` must not self-select and must ask the orchestrator for one.\n- [`plugins/khuym/skills/swarming/references/worker-template.md`](./plugins/khuym/skills/swarming/references/worker-template.md:45) now hard-stops startup when `<ASSIGNED_BEAD_ID>` is missing or empty.\n- [`plugins/khuym/skills/swarming/references/message-templates.md`](./plugins/khuym/skills/swarming/references/message-templates.md:98) now tells a worker to ask the orchestrator to assign a bead.\n- [`plugins/khuym/skills/swarming/SKILL.md`](./plugins/khuym/skills/swarming/SKILL.md:123) now marks `assigned_bead_id` as mandatory for a real worker run.\n- [`plugins/khuym/skills/swarming/tests/worker-assignment-contract.test.mjs`](./plugins/khuym/skills/swarming/tests/worker-assignment-contract.test.mjs:13) adds a regression test that checks the documented contract across the skill, template, and message formats.\n\nVerification:\n- `node --test plugins/khuym/skills/swarming/tests/worker-assignment-contract.test.mjs`\n\nI couldn’t use `br` in this environment because the local wrapper couldn’t locate the real binary, so I verified this with the focused Node test instead.",
+      "rawEventLogPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/02-missing-assignment-boundary/codex.stdout.jsonl",
+      "stderrLogPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/02-missing-assignment-boundary/codex.stderr.log",
+      "usage": {
+        "input_tokens": 1001307,
+        "output_tokens": 11739,
+        "total_tokens": 1013046,
+        "raw": {
+          "input_tokens": 1001307,
+          "cached_input_tokens": 939520,
+          "output_tokens": 11739,
+          "reasoning_output_tokens": 5275
+        }
+      },
+      "usageAvailability": "present",
+      "telemetry": {
+        "threadId": "019dde8f-ac09-7ab0-902c-0fbafdaba1b8",
+        "eventCount": 92,
+        "ignoredLineCount": 0,
+        "finalStatus": "completed",
+        "errorMessages": [],
+        "toolCallCount": 0,
+        "shellCommandCount": 0,
+        "failedShellCommandCount": 0,
+        "toolNames": [],
+        "shellCommands": [],
+        "usage": {
+          "input_tokens": 1001307,
+          "output_tokens": 11739,
+          "total_tokens": 1013046,
+          "raw": {
+            "input_tokens": 1001307,
+            "cached_input_tokens": 939520,
+            "output_tokens": 11739,
+            "reasoning_output_tokens": 5275
+          }
+        },
+        "usageAvailability": "present"
+      },
+      "workspacePath": null,
+      "workspaceSummary": {
+        "addedFileCount": 1,
+        "modifiedFileCount": 4,
+        "deletedFileCount": 0,
+        "changedFileCount": 5,
+        "generatedFileCount": 1,
+        "generatedTestFileCount": 1,
+        "changedTestFileCount": 1,
+        "changedTextLineDelta": 33,
+        "changedFiles": [
+          {
+            "path": "plugins/khuym/skills/swarming/tests/worker-assignment-contract.test.mjs",
+            "status": "added",
+            "isText": true,
+            "lineCountBefore": 0,
+            "lineCountAfter": 27,
+            "lineDelta": 27
+          },
+          {
+            "path": "plugins/khuym/skills/executing/SKILL.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 349,
+            "lineCountAfter": 351,
+            "lineDelta": 2
+          },
+          {
+            "path": "plugins/khuym/skills/swarming/references/message-templates.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 157,
+            "lineCountAfter": 157,
+            "lineDelta": 0
+          },
+          {
+            "path": "plugins/khuym/skills/swarming/references/worker-template.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 116,
+            "lineCountAfter": 118,
+            "lineDelta": 2
+          },
+          {
+            "path": "plugins/khuym/skills/swarming/SKILL.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 291,
+            "lineCountAfter": 293,
+            "lineDelta": 2
+          }
+        ],
+        "allChanges": [
+          {
+            "path": "plugins/khuym/skills/swarming/tests/worker-assignment-contract.test.mjs",
+            "status": "added",
+            "isText": true,
+            "lineCountBefore": 0,
+            "lineCountAfter": 27,
+            "lineDelta": 27
+          },
+          {
+            "path": "plugins/khuym/skills/executing/SKILL.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 349,
+            "lineCountAfter": 351,
+            "lineDelta": 2
+          },
+          {
+            "path": "plugins/khuym/skills/swarming/references/message-templates.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 157,
+            "lineCountAfter": 157,
+            "lineDelta": 0
+          },
+          {
+            "path": "plugins/khuym/skills/swarming/references/worker-template.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 116,
+            "lineCountAfter": 118,
+            "lineDelta": 2
+          },
+          {
+            "path": "plugins/khuym/skills/swarming/SKILL.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 291,
+            "lineCountAfter": 293,
+            "lineDelta": 2
+          }
+        ]
+      },
+      "workspaceChanges": [
+        {
+          "path": "plugins/khuym/skills/swarming/tests/worker-assignment-contract.test.mjs",
+          "status": "added",
+          "isText": true,
+          "lineCountBefore": 0,
+          "lineCountAfter": 27,
+          "lineDelta": 27
+        },
+        {
+          "path": "plugins/khuym/skills/executing/SKILL.md",
+          "status": "modified",
+          "isText": true,
+          "lineCountBefore": 349,
+          "lineCountAfter": 351,
+          "lineDelta": 2
+        },
+        {
+          "path": "plugins/khuym/skills/swarming/references/message-templates.md",
+          "status": "modified",
+          "isText": true,
+          "lineCountBefore": 157,
+          "lineCountAfter": 157,
+          "lineDelta": 0
+        },
+        {
+          "path": "plugins/khuym/skills/swarming/references/worker-template.md",
+          "status": "modified",
+          "isText": true,
+          "lineCountBefore": 116,
+          "lineCountAfter": 118,
+          "lineDelta": 2
+        },
+        {
+          "path": "plugins/khuym/skills/swarming/SKILL.md",
+          "status": "modified",
+          "isText": true,
+          "lineCountBefore": 291,
+          "lineCountAfter": 293,
+          "lineDelta": 2
+        }
+      ],
+      "generatedCode": {
+        "checks": [
+          {
+            "id": "coverage-artifacts-unavailable",
+            "category": "coverage",
+            "severity": "info",
+            "status": "info",
+            "message": "No coverage artifacts were found for this target.",
+            "evidence": [
+              "../../../../../var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-missing-assignment-boundary-mNH88X/workspace"
+            ],
+            "remediation": [
+              "Generate `lcov.info`, `coverage.xml`, or an Istanbul coverage JSON file if you want coverage scoring."
+            ],
+            "source": "core"
+          }
+        ],
+        "metrics": [
+          {
+            "id": "coverage_artifact_count",
+            "category": "coverage",
+            "value": 0,
+            "unit": "files",
+            "band": "info",
+            "source": "core"
+          }
+        ],
+        "artifacts": []
+      },
+      "verifierResults": [
+        {
+          "command": "rg -n \"assigned_bead_id|Assigned bead ID|orchestrator owns bead selection\" plugins/khuym/skills/executing/SKILL.md plugins/khuym/skills/swarming/SKILL.md plugins/khuym/skills/swarming/references/worker-template.md",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 134,
+          "stdoutPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/02-missing-assignment-boundary/verifier-1.stdout.log",
+          "stderrPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/02-missing-assignment-boundary/verifier-1.stderr.log"
+        },
+        {
+          "command": "! rg -n 'Worker self-routing|Get priority bead|pick one executable bead from bv --robot-priority|Run bv --robot-priority' plugins/khuym/skills/executing/SKILL.md plugins/khuym/skills/swarming/SKILL.md plugins/khuym/skills/swarming/references/worker-template.md",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 96,
+          "stdoutPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/02-missing-assignment-boundary/verifier-2.stdout.log",
+          "stderrPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/02-missing-assignment-boundary/verifier-2.stderr.log"
+        }
+      ],
+      "installedTargetPath": "/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-missing-assignment-boundary-mNH88X/home/.codex/skills/executing",
+      "codexHomePath": "/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-missing-assignment-boundary-mNH88X/home/.codex"
+    },
+    {
+      "id": "swarming-template-assignment",
+      "title": "Swarming Assigns The Bead",
+      "purpose": "Validate that swarming and the worker prompt template carry the selected bead explicitly.",
+      "successChecklist": [
+        "The worker template includes Assigned bead ID.",
+        "The placeholder table documents ASSIGNED_BEAD_ID as orchestrator-selected.",
+        "Pressure scenarios and handoff templates no longer instruct workers to use bv --robot-priority."
+      ],
+      "status": "completed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 159272,
+      "prompt": "Use the local Codex swarming/executing skill docs. Ensure the swarming worker prompt includes assigned_bead_id and says the orchestrator chooses the exact ready bead before spawning or re-spawning a worker.",
+      "finalMessagePath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/03-swarming-template-assignment/final-message.txt",
+      "finalMessagePreview": "Updated the swarming worker prompt so it now explicitly carries `assigned_bead_id` and states that the orchestrator chooses the exact ready bead before spawning or re-spawning a worker.\n\nChanged:\n- [`plugins/khuym/skills/swarming/references/worker-template.md`](/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-swarming-template-assignment-HloKSp/workspace/plugins/khuym/skills/swarming/references/worker-template.md#L34-L40)\n- [`plugins/khuym/skills/swarming/SKILL.md`](/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-swarming-template-assignment-HloKSp/workspace/plugins/khuym/skills/swarming/SKILL.md#L112-L127)\n\nI left `khuym:executing` intact because it already requires the worker to accept exactly one `assigned_bead_id` and reject self-selected work.",
+      "rawEventLogPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/03-swarming-template-assignment/codex.stdout.jsonl",
+      "stderrLogPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/03-swarming-template-assignment/codex.stderr.log",
+      "usage": {
+        "input_tokens": 311365,
+        "output_tokens": 5662,
+        "total_tokens": 317027,
+        "raw": {
+          "input_tokens": 311365,
+          "cached_input_tokens": 272768,
+          "output_tokens": 5662,
+          "reasoning_output_tokens": 2521
+        }
+      },
+      "usageAvailability": "present",
+      "telemetry": {
+        "threadId": "019dde91-e4a2-7431-85c4-8f8ba3f03807",
+        "eventCount": 47,
+        "ignoredLineCount": 0,
+        "finalStatus": "completed",
+        "errorMessages": [],
+        "toolCallCount": 0,
+        "shellCommandCount": 0,
+        "failedShellCommandCount": 0,
+        "toolNames": [],
+        "shellCommands": [],
+        "usage": {
+          "input_tokens": 311365,
+          "output_tokens": 5662,
+          "total_tokens": 317027,
+          "raw": {
+            "input_tokens": 311365,
+            "cached_input_tokens": 272768,
+            "output_tokens": 5662,
+            "reasoning_output_tokens": 2521
+          }
+        },
+        "usageAvailability": "present"
+      },
+      "workspacePath": null,
+      "workspaceSummary": {
+        "addedFileCount": 0,
+        "modifiedFileCount": 2,
+        "deletedFileCount": 0,
+        "changedFileCount": 2,
+        "generatedFileCount": 0,
+        "generatedTestFileCount": 0,
+        "changedTestFileCount": 0,
+        "changedTextLineDelta": 4,
+        "changedFiles": [
+          {
+            "path": "plugins/khuym/skills/swarming/references/worker-template.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 116,
+            "lineCountAfter": 118,
+            "lineDelta": 2
+          },
+          {
+            "path": "plugins/khuym/skills/swarming/SKILL.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 291,
+            "lineCountAfter": 293,
+            "lineDelta": 2
+          }
+        ],
+        "allChanges": [
+          {
+            "path": "plugins/khuym/skills/swarming/references/worker-template.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 116,
+            "lineCountAfter": 118,
+            "lineDelta": 2
+          },
+          {
+            "path": "plugins/khuym/skills/swarming/SKILL.md",
+            "status": "modified",
+            "isText": true,
+            "lineCountBefore": 291,
+            "lineCountAfter": 293,
+            "lineDelta": 2
+          }
+        ]
+      },
+      "workspaceChanges": [
+        {
+          "path": "plugins/khuym/skills/swarming/references/worker-template.md",
+          "status": "modified",
+          "isText": true,
+          "lineCountBefore": 116,
+          "lineCountAfter": 118,
+          "lineDelta": 2
+        },
+        {
+          "path": "plugins/khuym/skills/swarming/SKILL.md",
+          "status": "modified",
+          "isText": true,
+          "lineCountBefore": 291,
+          "lineCountAfter": 293,
+          "lineDelta": 2
+        }
+      ],
+      "generatedCode": {
+        "checks": [
+          {
+            "id": "coverage-artifacts-unavailable",
+            "category": "coverage",
+            "severity": "info",
+            "status": "info",
+            "message": "No coverage artifacts were found for this target.",
+            "evidence": [
+              "../../../../../var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-swarming-template-assignment-HloKSp/workspace"
+            ],
+            "remediation": [
+              "Generate `lcov.info`, `coverage.xml`, or an Istanbul coverage JSON file if you want coverage scoring."
+            ],
+            "source": "core"
+          }
+        ],
+        "metrics": [
+          {
+            "id": "coverage_artifact_count",
+            "category": "coverage",
+            "value": 0,
+            "unit": "files",
+            "band": "info",
+            "source": "core"
+          }
+        ],
+        "artifacts": []
+      },
+      "verifierResults": [
+        {
+          "command": "rg -n \"assigned_bead_id|Assigned bead ID|orchestrator owns bead selection\" plugins/khuym/skills/executing/SKILL.md plugins/khuym/skills/swarming/SKILL.md plugins/khuym/skills/swarming/references/worker-template.md",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 124,
+          "stdoutPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/03-swarming-template-assignment/verifier-1.stdout.log",
+          "stderrPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/03-swarming-template-assignment/verifier-1.stderr.log"
+        },
+        {
+          "command": "! rg -n 'Worker self-routing|Get priority bead|pick one executable bead from bv --robot-priority|Run bv --robot-priority' plugins/khuym/skills/executing/SKILL.md plugins/khuym/skills/swarming/SKILL.md plugins/khuym/skills/swarming/references/worker-template.md",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 88,
+          "stdoutPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/03-swarming-template-assignment/verifier-2.stdout.log",
+          "stderrPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/runs/2026-04-30T13-21-14/03-swarming-template-assignment/verifier-2.stderr.log"
+        }
+      ],
+      "installedTargetPath": "/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-swarming-template-assignment-HloKSp/home/.codex/skills/executing",
+      "codexHomePath": "/var/folders/9q/zrq7jhjs4pz4b48b82s82z4w0000gn/T/plugin-eval-swarming-template-assignment-HloKSp/home/.codex"
+    }
+  ],
+  "nextSteps": [
+    "Analyze the observed usage with: plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+    "Review the measurement plan with: plugin-eval measurement-plan ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown"
+  ],
+  "workflowGuide": {
+    "kind": "workflow-guide",
+    "createdAt": "2026-04-30T13:29:18.787Z",
+    "target": {
+      "kind": "skill",
+      "path": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing",
+      "entryPath": "/Users/themrb/Documents/personal/skills/plugins/khuym/skills/executing/SKILL.md",
+      "name": "executing",
+      "relativePath": "plugins/khuym/skills/executing"
+    },
+    "requestedGoal": "measure",
+    "requestedChatPrompt": null,
+    "requestRouting": null,
+    "recommendedWorkflowId": "measure",
+    "recommendedWorkflow": {
+      "id": "measure",
+      "label": "Measure Real Token Usage",
+      "chatPrompt": "Measure the real token usage of this skill.",
+      "summary": "You already have a local usage log, so the next step is to fold those real measurements back into the report.",
+      "firstCommand": "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+      "commands": [
+        "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+        "plugin-eval measurement-plan ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown"
+      ],
+      "startCommand": "plugin-eval start ~/Documents/personal/skills/plugins/khuym/skills/executing --request 'Measure the real token usage of this skill.' --format markdown"
+    },
+    "workflowStatus": {
+      "hasBenchmarkConfig": true,
+      "hasUsageLog": true
+    },
+    "beginnerSummary": "Start with a natural chat request, then let plugin-eval show the exact local command sequence behind it.",
+    "startHere": {
+      "chatPrompt": "Measure the real token usage of this skill.",
+      "label": "Measure Real Token Usage",
+      "summary": "You already have a local usage log, so the next step is to fold those real measurements back into the report.",
+      "routingExplanation": "Plugin Eval recommended Measure Real Token Usage from the current local state for this skill.",
+      "startCommand": "plugin-eval start ~/Documents/personal/skills/plugins/khuym/skills/executing --request 'Measure the real token usage of this skill.' --format markdown",
+      "firstCommand": "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+      "commands": [
+        "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+        "plugin-eval measurement-plan ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown"
+      ]
+    },
+    "entrypoints": [
+      {
+        "id": "analysis",
+        "label": "Full Skill Analysis",
+        "chatPrompt": "Give me a full analysis of this skill, including benchmark setup.",
+        "summary": "Use this when you want the full report plus measured usage follow-through for this skill.",
+        "firstCommand": "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+        "commands": [
+          "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+          "plugin-eval measurement-plan ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown"
+        ],
+        "startCommand": "plugin-eval start ~/Documents/personal/skills/plugins/khuym/skills/executing --request 'Give me a full analysis of this skill, including benchmark setup.' --format markdown"
+      },
+      {
+        "id": "evaluate",
+        "label": "Evaluate Skill",
+        "chatPrompt": "Evaluate this skill.",
+        "summary": "Start here when you want the overall report for a skill, including structure, budgets, and code checks.",
+        "firstCommand": "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --format markdown",
+        "commands": [
+          "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --format markdown"
+        ],
+        "startCommand": "plugin-eval start ~/Documents/personal/skills/plugins/khuym/skills/executing --request 'Evaluate this skill.' --format markdown"
+      },
+      {
+        "id": "budget",
+        "label": "Explain Token Budget",
+        "chatPrompt": "Explain the token budget for this skill.",
+        "summary": "Use this when the main question is why the skill feels expensive before you collect any live measurements.",
+        "firstCommand": "plugin-eval explain-budget ~/Documents/personal/skills/plugins/khuym/skills/executing --format markdown",
+        "commands": [
+          "plugin-eval explain-budget ~/Documents/personal/skills/plugins/khuym/skills/executing --format markdown"
+        ],
+        "startCommand": "plugin-eval start ~/Documents/personal/skills/plugins/khuym/skills/executing --request 'Explain the token budget for this skill.' --format markdown"
+      },
+      {
+        "id": "measure",
+        "label": "Measure Real Token Usage",
+        "chatPrompt": "Measure the real token usage of this skill.",
+        "summary": "You already have a local usage log, so the next step is to fold those real measurements back into the report.",
+        "firstCommand": "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+        "commands": [
+          "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+          "plugin-eval measurement-plan ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown"
+        ],
+        "startCommand": "plugin-eval start ~/Documents/personal/skills/plugins/khuym/skills/executing --request 'Measure the real token usage of this skill.' --format markdown"
+      },
+      {
+        "id": "benchmark",
+        "label": "Benchmark With Starter Scenarios",
+        "chatPrompt": "Help me benchmark this skill.",
+        "summary": "Use this when you want starter scenarios and a repeatable real-Codex benchmark run for this skill.",
+        "firstCommand": "plugin-eval benchmark ~/Documents/personal/skills/plugins/khuym/skills/executing --config ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark.json",
+        "commands": [
+          "plugin-eval benchmark ~/Documents/personal/skills/plugins/khuym/skills/executing --config ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark.json"
+        ],
+        "startCommand": "plugin-eval start ~/Documents/personal/skills/plugins/khuym/skills/executing --request 'Help me benchmark this skill.' --format markdown"
+      },
+      {
+        "id": "next",
+        "label": "Start Here",
+        "chatPrompt": "What should I run next?",
+        "summary": "You already collected benchmark output, so the best next step is to analyze the real usage and decide what to improve.",
+        "firstCommand": "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+        "commands": [
+          "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+          "plugin-eval measurement-plan ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown"
+        ],
+        "startCommand": "plugin-eval start ~/Documents/personal/skills/plugins/khuym/skills/executing --request 'What should I run next?' --format markdown"
+      }
+    ],
+    "nextSteps": [
+      "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+      "plugin-eval measurement-plan ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown"
+    ],
+    "nextAction": {
+      "label": "Measure Real Token Usage",
+      "why": "Plugin Eval recommended Measure Real Token Usage from the current local state for this skill.",
+      "command": "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+      "chatPrompt": "Measure the real token usage of this skill."
+    }
+  },
+  "nextAction": {
+    "label": "Fold the usage log back into analysis",
+    "why": "The Codex run produced observed usage, so the next step is to re-run analysis with those measurements.",
+    "command": "plugin-eval analyze ~/Documents/personal/skills/plugins/khuym/skills/executing --observed-usage ~/Documents/personal/skills/plugins/khuym/skills/executing/.plugin-eval/benchmark-usage.jsonl --format markdown",
+    "chatPrompt": "What should I run next?"
+  }
+}
