@@ -10,7 +10,7 @@ metadata:
   version: "1.1"
   ecosystem: khuym
   dependencies:
-    - id: gkg
+    gkg:
       kind: mcp_server
       server_names: [gkg]
       config_sources: [repo_codex_config, global_codex_config, plugin_mcp_manifest]

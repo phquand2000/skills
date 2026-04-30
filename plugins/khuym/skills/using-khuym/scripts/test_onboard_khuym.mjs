@@ -430,12 +430,12 @@ test("installed khuym_status text distinguishes missing commands from missing MC
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -616,12 +616,12 @@ test("checkRepo promotes missing dependency data into an operator-facing warning
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -672,12 +672,12 @@ test("onboard check JSON includes dependency warning summary when dependencies a
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -739,12 +739,12 @@ test("session-start hook emits dependency warning with command-vs-MCP split when
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -827,12 +827,12 @@ test("entry surfaces share the same missing-command vs missing-MCP wording bound
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -902,12 +902,12 @@ test("dependency helper marks missing command and missing mcp_server dependencie
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: must-have-command",
+        "    must-have-command:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required",
-        "    - id: am-server",
+        "    am-server:",
         "      kind: mcp_server",
         "      server_names: [mcp_agent_mail]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -937,6 +937,89 @@ test("dependency helper marks missing command and missing mcp_server dependencie
       report.skills[0].missing_dependencies.map((dependency) => dependency.id).sort(),
       ["am-server", "must-have-command"],
     );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("dependency helper parses nested dependency list items", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-deps-nested-"));
+  const skillsRoot = path.join(root, "plugins", "khuym", "skills");
+
+  try {
+    const alphaDir = path.join(skillsRoot, "alpha");
+    fs.mkdirSync(alphaDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(alphaDir, "SKILL.md"),
+      [
+        "---",
+        "name: alpha",
+        "description: Use when testing nested dependency metadata.",
+        "metadata:",
+        "  dependencies:",
+        "    -",
+        "      id: must-have-command",
+        "      kind: command",
+        "      command: definitely-missing-command",
+        "      missing_effect: unavailable",
+        "      reason: required",
+        "---",
+        "",
+        "# alpha",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const report = buildKhuymDependencyReport({
+      repoRoot: root,
+      skillsRoot,
+      commandProbe: () => ({ available: false, detail: "missing in test" }),
+    });
+
+    assert.equal(report.summary.declared_dependencies, 1);
+    assert.equal(report.skills[0].missing_dependencies[0].id, "must-have-command");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("dependency helper parses dependency block scalars for plugin-eval compatibility", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-deps-block-"));
+  const skillsRoot = path.join(root, "plugins", "khuym", "skills");
+
+  try {
+    const alphaDir = path.join(skillsRoot, "alpha");
+    fs.mkdirSync(alphaDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(alphaDir, "SKILL.md"),
+      [
+        "---",
+        "name: alpha",
+        "description: Use when testing block scalar dependency metadata.",
+        "metadata:",
+        "  dependencies: |",
+        "    - id: must-have-command",
+        "      kind: command",
+        "      command: definitely-missing-command",
+        "      missing_effect: unavailable",
+        "      reason: required",
+        "---",
+        "",
+        "# alpha",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const report = buildKhuymDependencyReport({
+      repoRoot: root,
+      skillsRoot,
+      commandProbe: () => ({ available: false, detail: "missing in test" }),
+    });
+
+    assert.equal(report.summary.declared_dependencies, 1);
+    assert.equal(report.skills[0].missing_dependencies[0].id, "must-have-command");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -993,7 +1076,7 @@ test("dependency helper respects declared MCP config_sources and can use package
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: gkg",
+        "    gkg:",
         "      kind: mcp_server",
         "      server_names: [gkg]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -1014,7 +1097,7 @@ test("dependency helper respects declared MCP config_sources and can use package
         "name: beta",
         "metadata:",
         "  dependencies:",
-        "    - id: gkg",
+        "    gkg:",
         "      kind: mcp_server",
         "      server_names: [gkg]",
         "      config_sources: [plugin_mcp_manifest]",
@@ -1097,7 +1180,7 @@ test("dependency helper still accepts legacy root-level plugin MCP manifests", (
         "name: beta",
         "metadata:",
         "  dependencies:",
-        "    - id: gkg",
+        "    gkg:",
         "      kind: mcp_server",
         "      server_names: [gkg]",
         "      config_sources: [plugin_mcp_manifest]",

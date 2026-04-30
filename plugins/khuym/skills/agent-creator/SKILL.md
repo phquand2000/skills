@@ -1,6 +1,6 @@
 ---
 name: agent-creator
-description: Create new persistent Codex agents for the current repo when asked to add a specialist agent, define a reusable subagent role, scaffold `.codex/agents/*.toml`, or match the agent to existing local skills and MCP servers.
+description: Use when the user asks to create a persistent repo-local Codex agent, scaffold `.codex/agents/*.toml`, define a reusable specialist role, or match an agent to existing local skills and MCP servers.
 metadata:
   dependencies: []
 ---

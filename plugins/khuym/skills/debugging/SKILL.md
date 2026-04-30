@@ -1,15 +1,15 @@
 ---
 name: debugging
-description: Systematic debugging for blocked workers, test failures, build errors, runtime crashes, and integration issues. Invoked standalone ("debug this error") or by other skills (reviewing spawns debugger on UAT failure, executing invokes it on blocker). Reads history/learnings/critical-patterns.md to avoid re-solving known issues. Writes debug notes that compounding can later capture.
+description: Use when blocked workers, test failures, build errors, runtime crashes, or integration issues need systematic root-cause debugging. Reads history/learnings/critical-patterns.md to avoid re-solving known issues. Writes debug notes that compounding can later capture.
 metadata:
   ecosystem: khuym
   dependencies:
-    - id: beads-cli
+    beads-cli:
       kind: command
       command: br
       missing_effect: degraded
       reason: Debugging checks bead context and creates fix beads with br when needed.
-    - id: beads-viewer
+    beads-viewer:
       kind: command
       command: bv
       missing_effect: degraded
