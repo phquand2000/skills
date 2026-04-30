@@ -1,7 +1,9 @@
 ---
 name: validating
-description: |
-  Use when planning has written phase-plan.md, the user has approved the phase plan, and the current phase has been decomposed into stories and beads. Verifies the current phase contract, story map, and bead graph across 8 structural dimensions, executes time-boxed spikes for HIGH-risk items, polishes current-phase beads, and requires explicit user approval before any code is written.
+description: >-
+  Use when planning prepares an approved current phase. Validate the phase
+  contract, story map, bead graph, risk spikes, and execution readiness before
+  user approval for swarming.
 metadata:
   version: '1.2'
   position: 3
@@ -41,14 +43,14 @@ If any are missing, return to `khuym:planning`. If `phase-plan.md` has not been 
 ## Operating Contract
 
 1. Orient on `.khuym/state.json`, the approved phase plan, and current phase artifacts.
-2. Run structural verification with `references/plan-checker-prompt.md`.
+2. Run structural verification with the plan-checker prompt in `references/validation-reference.md`.
 3. Execute 30-minute spikes for each HIGH-risk item that affects the current phase.
 4. Polish the bead graph with `bv --robot-suggest`, `bv --robot-insights`, and `bv --robot-priority`.
-5. Run fresh-eyes bead review with `references/bead-reviewer-prompt.md`.
+5. Run fresh-eyes bead review with the bead-reviewer prompt in `references/validation-reference.md`.
 6. Perform an exit-state readiness review.
 7. Ask the user to approve execution for this phase.
 
-Load `references/validation-protocol.md` for the detailed phase-by-phase checklist, repair routing, spike handling, approval template, lightweight mode, and red flags.
+Load `references/validation-reference.md` for the detailed checklist, repair routing, spike handling, approval gate, and subagent prompts.
 
 ## Non-Negotiable Gates
 
@@ -79,6 +81,4 @@ Then hand off: `Validation complete. Current phase passes. Invoke khuym:swarming
 
 | File | When to Load |
 |---|---|
-| `references/validation-protocol.md` | Detailed validation phases, repairs, approval, red flags |
-| `references/plan-checker-prompt.md` | Structural verification subagent |
-| `references/bead-reviewer-prompt.md` | Phase 3 fresh-eyes bead review |
+| `references/validation-reference.md` | Validation phases, repairs, approval, plan-checker, bead-reviewer |

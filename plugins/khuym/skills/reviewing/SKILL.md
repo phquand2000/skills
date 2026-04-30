@@ -1,6 +1,6 @@
 ---
 name: reviewing
-description: Use when the final phase swarm completes and the khuym feature needs post-execution quality verification. Runs specialist review agents, artifact verification, human UAT, finishing, review beads, and handoff to compounding.
+description: Use when the final swarm phase completes. Run specialist review, artifact verification, UAT, review beads, finishing checks, and handoff to compounding.
 metadata:
   version: '1.0'
   ecosystem: khuym
@@ -43,7 +43,7 @@ Reviewing is the final automated quality gate after execution. It verifies that 
 5. Walk the user through UAT items from locked decisions.
 6. Finish by checking all beads, running project quality gates, closing the epic, and preparing compounding.
 
-Load `references/reviewing-protocol.md` for the detailed agent roster, severity rules, artifact verification protocol, UAT flow, finishing checklist, state update, and red flags.
+Load `references/reviewing-reference.md` for the agent roster, severity rules, artifact verification, UAT flow, review bead schema, and finishing checklist.
 
 ## Hard Gates
 
@@ -75,7 +75,4 @@ Tell the user: `Feature complete. Epic <id> closed. Invoke khuym:compounding ski
 
 | File | When to Load |
 |---|---|
-| `references/reviewing-protocol.md` | Detailed review flow, gates, UAT, finishing |
-| `references/review-agent-prompts.md` | Exact prompts for the 5 specialist agents |
-| `references/review-bead-template.md` | Review bead body and metadata contract |
-| `references/finding-template.md` | Deprecation pointer for retired finding files |
+| `references/reviewing-reference.md` | Review flow, specialist roster, review bead schema |

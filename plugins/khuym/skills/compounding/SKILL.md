@@ -1,14 +1,9 @@
 ---
 name: compounding
 description: >-
-  Use when completed feature work needs durable learnings captured for future runs.
-  Invoke after reviewing completes and the feature is merged. Runs three parallel
-  analysis subagents (patterns/decisions/failures), synthesizes into
-  history/learnings dated markdown entries, promotes critical items to
-  critical-patterns.md. Trigger phrases: what did we learn, capture learnings,
-  compound, lessons learned, document what we found, khuym:compounding skill.
-  Key output: critical-patterns.md is read by every planning and exploring
-  Phase 0 — this is the flywheel that makes the ecosystem smarter over time.
+  Use when reviewing completes or work is intentionally abandoned. Extract
+  durable patterns, decisions, and failures into history/learnings, then promote
+  only critical reusable lessons to critical-patterns.md.
 metadata:
   version: '1.0'
   ecosystem: khuym
@@ -48,7 +43,7 @@ If history files are incomplete, use the session summary and recent git diff as 
 5. Optionally integrate with CASS/CM when repo config enables it.
 6. Update `.khuym/state.json` with the completed compounding run.
 
-Load `references/compounding-protocol.md` for the detailed subagent prompts, triage rules, promotion criteria, optional CASS/CM steps, state update, and red flags. Use `references/learnings-template.md` when writing the learnings file.
+Load `references/compounding-reference.md` for analysis prompts, promotion criteria, state update, and the learnings template.
 
 ## Hard Gates
 
@@ -70,5 +65,4 @@ Compounding complete.
 
 | File | When to Load |
 |---|---|
-| `references/compounding-protocol.md` | Detailed compounding phases and prompts |
-| `references/learnings-template.md` | Learnings file template with YAML frontmatter |
+| `references/compounding-reference.md` | Protocol and learnings template |

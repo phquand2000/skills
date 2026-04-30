@@ -1,115 +1,70 @@
 # Worker Details
 
-Open this file when the compact worker loop in `SKILL.md` is not enough.
+Open this when the compact worker loop needs exact fields or commands.
 
 ## Parent Context
 
-Swarming should provide:
+The orchestrator supplies: Codex nickname, agent id, epic id, feature name,
+project root, assigned bead id, and optional startup hint. The nickname is the
+reservation identity.
 
-- `codex_subagent_name`
-- `agent_id`
-- `project_key`
-- `epic_id`
-- `feature_name`
-- optional `startup_hint`
+## Assigned Bead Check
 
-The Codex nickname is your reservation identity. Use it for reserve, release, and write-heavy shell commands.
+Workers do not pick beads. For the one assigned bead, confirm:
 
-## Bead Selection Detail
+- status is open and dependencies are satisfied
+- required file scope is clear
+- verification criteria are concrete
+- referenced decision IDs from `CONTEXT.md` are understandable
 
-Choose the top-ranked open bead that:
+Return `[NOOP]` if no safe assigned bead exists; return `[BLOCKED]` for ambiguity.
 
-- has no unresolved dependencies
-- is consistent with `CONTEXT.md`
-- looks implementable within one bounded worker run
+## Reservation Conflict
 
-Before implementing, confirm:
-
-- what must be built
-- which dependencies must already be closed
-- the verification criteria
-- the file scope
-- any referenced decision IDs from `CONTEXT.md`
-
-## Reservation Conflict Report
-
-If reservation conflicts, return `[BLOCKED]` with:
-
-- bead id
-- requested files or globs
-- conflicting holder
-- what you need next
-
-Do not edit through the conflict.
+If reservation fails, return `[BLOCKED]` with bead id, requested paths, conflicting
+holder, and the parent action needed. Do not edit through the conflict.
 
 ## Shell Guard
 
-Prefix write-heavy Bash commands with your reservation identity:
+Prefix write-heavy Bash commands with:
 
 ```bash
 KHUYM_AGENT_NAME="<codex-subagent-name>" git add src/foo.ts
 ```
 
-Use this for:
-
-- `git add`
-- `git mv`
-- `git rm`
-- `mv`, `cp`, `rm`, `mkdir`, `touch`
-- `sed -i`, `perl -i`, redirection-based file writes
+Use this for `git add/mv/rm`, `mv`, `cp`, `rm`, `mkdir`, `touch`, in-place edits,
+and redirection writes.
 
 ## Verification Failure
 
-If verification fails:
-
-1. fix the root cause
-2. rerun the exact failing command
-3. if it still fails after two serious attempts, stop and return `[BLOCKED]`
-
-Include the command, failure text summary, what you tried, and the smallest useful next decision.
+Fix root cause and rerun the exact failing command. After two serious attempts,
+return `[BLOCKED]` with command, failure summary, attempts made, and the smallest
+useful next decision.
 
 ## Atomic Commit
 
 One commit per bead:
 
 ```bash
-KHUYM_AGENT_NAME="<codex-subagent-name>" git add <files-you-modified>
+KHUYM_AGENT_NAME="<name>" git add <files>
 git commit -m "feat(<bead-id>): <summary matching br close reason>"
 ```
 
-Do not batch multiple beads into one commit.
+## Result Fields
 
-## Result Headings
+- `[DONE]`: bead closed, committed, verification passed, reservations released
+- `[BLOCKED]`: cannot continue safely; include blocker and reservation state
+- `[HANDOFF]`: `.khuym/HANDOFF.json` written; include resume point
+- `[NOOP]`: assigned bead is unavailable or unsafe
 
-Use one of:
-
-- `[DONE]`: bead closed, committed, and reservations released.
-- `[BLOCKED]`: cannot safely continue; include current reservation state and the parent decision needed.
-- `[HANDOFF]`: context is high or safe stop needed; write `.khuym/HANDOFF.json` first.
-- `[NOOP]`: no safe bead exists right now.
-
-Expected minimum fields:
-
-- Codex nickname
-- agent id if known
-- bead id
-- files touched or requested
-- reservation outcome
-- verification result
-- next action the parent should take
-
-Follow `../swarming/references/message-templates.md` when available.
+Minimum fields: nickname, agent id, bead id, files touched/requested, reservation
+outcome, verification result, and parent next action.
 
 ## Post-Compaction Recovery
 
-After compaction, stop and reread:
+Reread:
 
 1. `AGENTS.md`
 2. `history/<feature>/CONTEXT.md`
 3. `br show <bead-id>`
-4. active reservations:
-   ```bash
-   node .codex/khuym_reservations.mjs list --active-only --agent "<codex-subagent-name>" --json
-   ```
-
-Only continue once those four are restored.
+4. `node .codex/khuym_reservations.mjs list --active-only --agent "<name>" --json`

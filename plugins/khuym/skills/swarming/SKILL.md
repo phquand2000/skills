@@ -1,6 +1,6 @@
 ---
 name: swarming
-description: Use when the khuym:validating skill approves the current phase for execution and parallel worker agents should run. Initializes the overseer/orchestrator context, spawns bounded Codex subagents, monitors worker results plus local file reservations, coordinates rescues and course corrections through the parent thread, and hands off either to planning for the next phase or to reviewing after the final phase. The orchestrator TENDS — it never implements beads directly.
+description: Use when validating approves execution. Orchestrates bounded Codex workers, local reservations, worker results, rescues, and phase handoff. Tends the swarm but never implements beads directly.
 metadata:
   version: '1.0'
   role: orchestrator
@@ -53,13 +53,13 @@ Prerequisites:
 
 1. Confirm readiness with `bv --robot-triage --graph-root <EPIC_ID>`.
 2. Sweep expired reservations.
-3. Choose each ready bead parent-side, then spawn bounded worker subagents with `references/worker-template.md`.
+3. Choose each ready bead parent-side, then spawn bounded worker subagents with `references/swarming-reference.md`.
 4. Record `agent_id`, `agent_nickname`, bead, and status in `.khuym/state.json`.
 5. Tend the live graph, reservations, and worker results until the phase is clean.
 6. Write `.khuym/HANDOFF.json` before pausing near context limits.
 7. Run final graph, reservation, and quality checks before handing off.
 
-Load `references/swarming-protocol.md` for detailed spawn context, tend-loop rules, silence ladder, conflict resolution, handoff content, completion rules, and red flags.
+Load `references/swarming-reference.md` for spawn context, tend-loop rules, result templates, handoff content, and red flags.
 
 ## Hard Rules
 
@@ -82,8 +82,6 @@ Swarming is complete when either:
 
 | File | When to Load |
 |---|---|
-| `references/swarming-protocol.md` | Detailed orchestration flow and edge cases |
-| `references/worker-template.md` | Worker bootstrap prompt |
-| `references/message-templates.md` | Worker final-report formats |
+| `references/swarming-reference.md` | Orchestration flow, worker prompt, result formats |
 | `.khuym/state.json` | Runtime worker and phase state |
 | `.khuym/HANDOFF.json` | Pause/resume artifact |
