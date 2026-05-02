@@ -50,8 +50,8 @@ Behavioral summary:
 
 - `using-khuym` bootstraps, routes, explains modes, and handles resume/startup logic
 - `exploring` extracts decisions and writes `history/<feature>/CONTEXT.md`
-- `planning` turns those decisions into discovery, approach, phase planning, current-phase contracts, story maps, and beads
-- `validating` proves the current phase is ready before execution starts
+- `planning` turns those decisions into discovery, approach, a mode gate, mode-sized artifacts, and approved-work beads when needed
+- `validating` proves the chosen shape fits repo reality and the current work is ready before execution starts
 - `swarming` launches and tends workers through Codex subagents, the parent thread, and the live bead graph
 - `executing` is the per-worker loop: claim, reserve locally, implement, verify, close, report
 - `reviewing` performs specialist review, artifact verification, and the merge gate

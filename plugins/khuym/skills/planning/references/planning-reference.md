@@ -4,19 +4,33 @@ Use this when `khuym:planning` needs quality checks or artifact schemas.
 
 ## Quality Rules
 
+- Use the least workflow that can honestly protect the work.
+- Choose one mode before shaping artifacts: `direct_task`, `spike`, `small_change`, `standard_feature`, or `high_risk_feature`.
 - Explain phases by what becomes true for users or systems.
-- Keep 2-4 phases; each phase needs an observable demo.
-- Stories are ordered steps inside the current phase, not architecture layers.
+- Use phases only when separate observable milestones reduce risk or clarify approval. Standard features usually have 2-4 phases; smaller modes usually do not.
+- Stories are ordered steps inside current work, not architecture layers. Skip stories when the work is one clear unit.
 - Beads are worker-sized: one concern, clear file scope, dependencies, verification.
 - Risk: LOW = direct existing pattern; MEDIUM = variation; HIGH = novel, external/security/data risk or >5-file blast radius. HIGH needs a spike.
 
-Trace must hold:
+Trace must hold at the chosen scale:
 
 ```text
-feature -> phase -> story -> bead
+mode -> shape -> work -> story? -> bead?
 ```
 
-## Discovery Template
+## Mode Gate
+
+| Mode | Use When | Shape |
+|---|---|---|
+| `direct_task` | obvious local change, no ambiguity | short approach + one bead or direct handoff |
+| `spike` | one assumption decides the path | yes/no question, proof, outcome |
+| `small_change` | <=3 files, LOW risk, no API/data model change | one work shape, usually one bead |
+| `standard_feature` | user-visible capability needs ordered slices | phase plan, current phase contract/story map, beads |
+| `high_risk_feature` | hard-to-reverse, external/security/data, or broad blast radius | standard feature plus spikes and stricter validation |
+
+Above `small_change`, record why smaller modes are insufficient.
+
+## Discovery
 
 ```markdown
 # Discovery Report: <Feature>
@@ -25,25 +39,17 @@ feature -> phase -> story -> bead
 **Feature:** <slug>
 **CONTEXT.md:** `history/<feature>/CONTEXT.md`
 
-## Institutional Learnings
-- Critical patterns: <relevant entries or none>
-- Domain learnings: <file -> insight, or none>
-
 ## Architecture Snapshot
 | Area | Purpose | Key Files |
 |---|---|---|
-| <module> | <owner/purpose> | `<path>` |
+| <module> | <purpose> | `<path>` |
 
-Entry points: <API/UI/job/service paths>
-Model after: `<path>` - <pattern>
+Entry points: <paths>
 
 ## Constraints
 - Runtime/framework: <versions>
 - Dependencies: <existing and new, with risk>
 - Quality gates: `<command>`, `<command>`
-
-## External Research
-Only for new libraries/integrations: <source, version/date, actionable gotcha>.
 
 ## Summary For Synthesis
 Have: <1-2 sentences>
@@ -51,18 +57,13 @@ Need: <1-2 sentences>
 Constraints/warnings: <bullets>
 ```
 
-## Approach Template
+## Approach
 
 ```markdown
 # Approach: <Feature>
 
 ## Recommended Approach
-<3-5 sentences with concrete strategy and why it fits locked decisions.>
-
-Key decisions:
-| Decision | Choice | Rationale |
-|---|---|---|
-| <topic> | <choice> | <why> |
+<3-5 sentences with strategy and why it fits locked decisions.>
 
 Alternatives considered: <option -> why rejected>
 
@@ -71,15 +72,17 @@ Alternatives considered: <option -> why rejected>
 |---|---|---|---|
 | <component> | LOW/MEDIUM/HIGH | <why> | proceed/sketch/spike |
 
-HIGH-risk spikes: <component -> yes/no question, or none>
+Spikes: <assumption -> yes/no question, or none>
 
-Files/order/learnings/open questions: `<path>` - <purpose>; Layer 1 -> Layer 2; `history/learnings/<file>` - <effect>; [ ] <validating question>
+Files/order/learnings/questions: `<path>`; Layer 1 -> Layer 2; `history/learnings/<file>`; [ ] <validating question>
 ```
 
-## Phase Plan Template
+## Phase Plan
 
 ```markdown
 # Phase Plan: <Feature>
+
+Mode: `standard_feature` | `high_risk_feature`
 
 ## Feature Summary
 <2-4 sentences>
@@ -101,17 +104,23 @@ Files/order/learnings/open questions: `<path>` - <purpose>; Layer 1 -> Layer 2; 
 - Deferred until later: <one sentence>
 ```
 
-## Phase Contract Template
+For `direct_task`, `spike`, or `small_change`, replace the phase table with:
+
+```markdown
+# Work Shape: <Feature>
+
+Mode: `<mode>`
+Why this mode: <why smaller/bigger workflow is unnecessary>
+Current work: <one practical outcome or yes/no spike question>
+Proof: `<command>` or observable check
+Out of scope: <what this will not solve>
+Approval: approve this work shape before prep/beads.
+```
+
+## Phase Contract
 
 ```markdown
 # Phase Contract: Phase <N> - <Name>
-
-## What This Phase Changes
-<2-4 practical sentences>
-
-## Why Now
-- <ordering reason>
-- <risk if skipped>
 
 ## Entry State
 - <observable truth>
@@ -123,9 +132,9 @@ Files/order/learnings/open questions: `<path>` - <purpose>; Layer 1 -> Layer 2; 
 <short proof> with checklist steps.
 
 ## Story Sequence
-| Story | What Happens | Why Now | Unlocks | Done Looks Like |
-|---|---|---|---|---|
-| Story 1 | <outcome> | <why first> | <next> | <proof> |
+| Story | What Happens | Unlocks | Done |
+|---|---|---|---|
+| Story 1 | <outcome> | <next> | <proof> |
 
 ## Out Of Scope / Success / Pivot Signals
 - Out: <not solved>
@@ -133,7 +142,7 @@ Files/order/learnings/open questions: `<path>` - <purpose>; Layer 1 -> Layer 2; 
 - Pivot: <signal to revise>
 ```
 
-## Story Map Template
+## Story Map
 
 ```markdown
 # Story Map: Phase <N> - <Name>
@@ -142,9 +151,9 @@ Files/order/learnings/open questions: `<path>` - <purpose>; Layer 1 -> Layer 2; 
 `Entry -> Story 1 -> Story 2 -> Exit` (replace with Mermaid when helpful)
 
 ## Story Table
-| Story | What Happens | Why Now | Contributes To | Creates | Unlocks | Done Looks Like |
-|---|---|---|---|---|---|---|
-| Story 1 | <outcome> | <why first> | <exit item> | <artifact> | <next> | <proof> |
+| Story | What Happens | Contributes To | Creates | Done |
+|---|---|---|---|---|
+| Story 1 | <outcome> | <exit item> | <artifact> | <proof> |
 
 ## Order Check
 - [ ] Story 1 is obviously first.

@@ -1,76 +1,100 @@
 # Validation Reference
 
-Use after `khuym:validating` is selected and the current phase is approved.
+Use after `khuym:validating` is selected and work shape is approved.
 
 ## Protocol
 
-1. **Orient:** read state and phase artifacts. Present phase name, stories, and one practical goal. Stop if phase plan lacks user approval.
-2. **Structural verification:** max 3 plan-checker iterations over beads plus `CONTEXT.md`, `discovery.md`, `approach.md`, `phase-plan.md`, contract, and story map.
-3. **Spikes:** for every HIGH-risk current-phase item, create a 30-minute spike bead with a yes/no question. YES embeds constraints; NO returns to planning.
-4. **Bead polishing:** run `bv --robot-suggest`, `bv --robot-insights`, and `bv --robot-priority`; fix duplicates, orphaned beads, story mismatch, priority mismatch, and scope problems.
-5. **Fresh-eyes bead review:** run the bead-reviewer prompt below. Fix all CRITICAL flags.
-6. **Exit-state readiness:** confirm stories and beads make the phase exit state true, the demo is credible, and the phase still fits the whole plan.
-7. **Approval:** ask the user to approve execution for this phase only.
+1. **Orient:** read state, mode, and approved shape. Present mode, work, and one practical goal. Stop if approval is missing.
+2. **Reality gate:** prove mode/plan fit repo files, APIs, commands, tests, versions, runtime constraints, and missing surfaces. Challenge smaller modes.
+3. **Structural verification:** max 3 plan-checker iterations over mode-required artifacts.
+4. **Spikes:** require yes/no proof for assumptions that can invalidate the path. YES embeds constraints; NO returns to planning.
+5. **Bead polishing/review:** when beads exist, run `bv --robot-suggest`, `bv --robot-insights`, `bv --robot-priority`, then fresh-eyes bead review. Fix CRITICAL flags.
+6. **Exit-state readiness:** confirm the current work makes its exit true, proof is credible, and future work is not smuggled in.
+7. **Approval:** ask the user to approve execution for this work only.
 
-Repair routing: phase meaning -> contract; story order/scope -> story map;
-decision coverage -> story map or beads; dependency/scope/test gaps -> beads;
-unreachable exit state -> contract, story map, or phase plan.
+Repair routing: wrong mode/fake assumption -> planning; phase meaning -> contract;
+story order/scope -> story map; decision coverage -> story map or beads;
+dependency/scope/test gaps -> beads; unreachable exit -> contract, story map, or shape artifact.
+
+## Reality Gate
+
+Output:
+
+```text
+REALITY GATE REPORT
+Mode: <mode>
+Current work: <one sentence>
+
+MODE FIT: PASS|FAIL
+REPO FIT: PASS|FAIL
+ASSUMPTIONS: PASS|FAIL
+SMALLER PATH: PASS|FAIL
+PROOF SURFACE: PASS|FAIL
+
+Decision: proceed | revise planning | run spike first | collapse mode
+Evidence: <file/command/runtime evidence>
+```
+
+Fail if the plan assumes nonexistent code, unsupported commands, stale versions,
+missing credentials, unreachable services, hidden architecture work, or too much
+ceremony. Validating may collapse mode, require a spike, or return to planning before bead review.
 
 ## Approval Gate
 
 ```text
 VALIDATION COMPLETE - APPROVAL REQUIRED BEFORE EXECUTION
 
-Phase: Phase <n> - <name>
-Stories: <N>
-Beads: <N>
+Mode: <mode>
+Work: <Phase <n> - <name> | direct task | spike | small change>
+Stories: <N or none>
+Beads: <N or none>
 Demo: <one-line walkthrough>
-Structural verification: PASS after <N> iterations
-Spike results: <none | all passed | concerns>
-Polishing: <graph fixes, priority changes, duplicates removed>
-Fresh-eyes CRITICAL flags fixed: <N>
+Reality gate: PASS
+Structure: PASS after <N> iterations
+Spikes: <none | passed | concerns>
+Polishing/review: <done | not needed>
 Exit-state readiness: PASS
 Unresolved concerns: <none | list>
 
-Approve execution for Phase <n>? (yes/no)
+Approve execution for this work? (yes/no)
 ```
 
 ## Plan-Checker Prompt
 
 You are the Khuym plan-checker. Find structural problems that would make the
-current phase fail. Do not improve the plan; verify it.
+current work fail. Do not redesign the plan; verify it.
 
 Output:
 
 ```text
 PLAN VERIFICATION REPORT
 Feature: <feature>
-Current phase: Phase <n> - <name>
-Stories reviewed: <N>
-Beads reviewed: <N>
+Mode: <mode>
+Work: <phase/direct task/spike/small change>
+Stories reviewed: <N or none>
+Beads reviewed: <N or none>
 Date: <today>
 
-DIMENSION 1 - Phase Contract Clarity: PASS|FAIL
-DIMENSION 2 - Story Coverage And Ordering: PASS|FAIL
-DIMENSION 3 - Decision Coverage: PASS|FAIL
-DIMENSION 4 - Dependency Correctness: PASS|FAIL
-DIMENSION 5 - File Scope Isolation: PASS|FAIL
-DIMENSION 6 - Context Budget: PASS|FAIL
-DIMENSION 7 - Verification Completeness: PASS|FAIL
-DIMENSION 8 - Exit-State Completeness And Risk Alignment: PASS|FAIL
+D1 Mode/Shape: PASS|FAIL
+D2 Stories: PASS|FAIL
+D3 Decisions: PASS|FAIL
+D4 Dependencies: PASS|FAIL
+D5 File Scope: PASS|FAIL
+D6 Context Budget: PASS|FAIL
+D7 Verification: PASS|FAIL
+D8 Exit/Risk: PASS|FAIL
 
 OVERALL: PASS|FAIL
 PRIORITY FIXES:
 1. <only if FAIL>
 ```
 
-For each dimension, give brief evidence and quote the failing text when failing.
-PASS overall only when all dimensions pass.
+Give brief evidence. PASS overall only when all dimensions pass.
 
 Dimension meanings:
 
-- contract: practical change, why now, entry, exit, demo, unlocks, out-of-scope, pivot signals
-- stories: clear jobs, ordering, and coverage of the phase exit state
+- mode/shape: least workflow that protects the work; entry, exit, demo, scope, pivot signals as needed
+- stories: clear jobs, ordering, exit coverage; PASS as not needed for direct tasks/spikes
 - decisions: relevant `D#` decisions map to stories and beads
 - dependencies: no cycles, missing references, or hidden story/bead dependencies
 - scope: parallel-ready beads do not write the same files unless ordered
@@ -82,7 +106,7 @@ Dimension meanings:
 
 You are the Khuym bead-reviewer. You see only current-phase beads, like a fresh
 executor. Stress-test whether each bead can be picked up cold and completed.
-Do not redesign the plan; revise only clear local fixes.
+Do not redesign the plan.
 
 Output:
 
@@ -92,33 +116,18 @@ Phase: Phase <n> - <infer if needed>
 Beads reviewed: <N>
 Date: <today>
 
-CRITICAL FLAGS (<N>)
-[CRITICAL] BR-<id>: <title>
-Problem: <one sentence>
-Evidence: "<direct quote>"
-Fix required: <specific action>
-
-MINOR FLAGS (<N>)
-[MINOR] BR-<id>: <title>
-Problem: <one sentence>
-Evidence: "<direct quote>"
-Suggestion: <specific improvement>
-
-CLEAN BEADS (<N>)
-BR-<id>, BR-<id>
-
-REVISIONS MADE (<N>)
-[UPDATED] BR-<id>: <title>
-Change: <what changed>
-Why: <why safer or clearer>
+CRITICAL FLAGS (<N>): BR-<id> problem/evidence/fix
+MINOR FLAGS (<N>): BR-<id> problem/evidence/suggestion
+CLEAN BEADS (<N>): BR-<id>, BR-<id>
+REVISIONS MADE (<N>): BR-<id> change/why
 
 SUMMARY
 <2-3 sentences>
 ```
 
-CRITICAL: assumed context, vague acceptance, scope overload, missing implementation
-path, or broken verification. MINOR: missing rationale, implicit file assumption,
-fuzzy boundary, or known tradeoff not recorded.
+CRITICAL: assumed context, vague acceptance, scope overload, missing path, or
+broken verification. MINOR: missing rationale, implicit file assumption, fuzzy
+boundary, or known tradeoff not recorded.
 
 Do not flag brief valid beads, architecture preferences, valid bead ID references,
 missing out-of-scope features, or style-only issues.
@@ -126,7 +135,9 @@ missing out-of-scope features, or style-only issues.
 ## Red Flags
 
 - executing before approval
-- validating without approved phase plan
+- validating without approved shape artifact
+- skipping the reality gate
+- approving a well-written plan that does not match current repo truth
 - fourth structural iteration
 - continuing after a NO spike
 - unobservable exit state

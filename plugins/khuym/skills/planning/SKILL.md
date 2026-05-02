@@ -1,9 +1,8 @@
 ---
 name: planning
 description: >-
-  Use when exploring has locked CONTEXT.md and the feature needs research,
-  phase/story planning, current-phase artifacts, and real Beads for the approved
-  phase only.
+  Use when exploring has locked CONTEXT.md and the work needs research, mode
+  selection, planning artifacts, or Beads before validation.
 metadata:
   ecosystem: khuym
   dependencies:
@@ -37,7 +36,7 @@ metadata:
 
 # Planning Skill
 
-Planning turns locked `CONTEXT.md` decisions into a whole-feature phase plan, then prepares only the approved current phase for validation.
+Planning turns locked `CONTEXT.md` decisions into the smallest believable path to execution, then prepares only approved work for validation.
 
 If `.khuym/onboarding.json` is missing or stale, stop and invoke `khuym:using-khuym`.
 
@@ -47,41 +46,42 @@ If `.khuym/onboarding.json` is missing or stale, stop and invoke `khuym:using-kh
 - Read critical patterns and relevant learnings before discovery.
 - Run `node .codex/khuym_status.mjs --json` when available.
 - Use gkg first for supported ready repos; document fallback.
-- Stop after `phase-plan.md` until the user approves.
-- Create beads only for the approved current phase.
+- Start with a mode gate: `direct_task`, `spike`, `small_change`, `standard_feature`, or `high_risk_feature`.
+- Use the least workflow that protects the work.
+- Stop after the shape artifact until the user approves.
+- Create beads only for the approved execution surface.
 - Handoff only to `khuym:validating`.
 
 ## Shape
 
-```text
-Whole Feature -> Phase Plan -> Current Phase -> Stories -> Beads
-```
-
-Phase = observable capability slice. Story = ordered current-phase step. Bead = one worker-sized task.
+`Mode -> Shape artifact -> Current work -> optional stories -> beads`.
+Mode decides structure. Phase = observable capability slice; story = ordered step; bead = worker-sized task.
 
 Load `references/planning-reference.md` for quality rules and artifact templates.
 
 ## Flow
 
 1. **Bootstrap:** scout, read `CONTEXT.md`, read learnings. If context is missing, ask for `khuym:exploring`.
-2. **Discovery:** map topology, reusable patterns, constraints, and needed external research. Write `history/<feature>/discovery.md`.
-3. **Synthesis:** write `history/<feature>/approach.md` with gaps, recommendation, alternatives, risks, files, learnings, and validating questions.
-4. **Phase plan:** write `history/<feature>/phase-plan.md`; show 2-4 phases, demos, stories, and the phase to prepare first. Present the approval gate and stop.
-5. **Current phase prep:** after approval, write `phase-<n>-contract.md` and `phase-<n>-story-map.md`; multi-perspective check HIGH-risk phases.
-6. **Beads:** create/update epic, create current-phase beads with `br`, link dependencies, map stories to beads. Each bead gets only relevant decisions, story context, file scope, verification, and learnings.
-7. **State:** update `.khuym/state.json` with phase number, active beads, and `next_action: "Invoke khuym:validating for Phase <n>."`
+2. **Discovery:** map repo reality, reusable patterns, constraints, and needed research. Write `discovery.md` only when useful.
+3. **Mode gate:** classify the work. If one proof decides the path, choose `spike`.
+4. **Synthesis:** write `approach.md` with smallest path, risks, proof needs, files, learnings, and validating questions.
+5. **Shape artifact:** write a direct task note, spike question, small-change shape, or multi-phase `phase-plan.md`. Present the approval gate and stop.
+6. **Prep:** after approval, write only artifacts the mode needs; create/update only approved beads with `br`.
+7. **State:** update `.khuym/state.json` with mode, active beads, and `next_action: "Invoke khuym:validating."`
 
 ## Approval Gate
 
 ```text
-Planning has broken the feature into phases and stories. Review `history/<feature>/phase-plan.md`. If approved, planning will prepare Phase <n> for validating. Do not create beads before this approval.
+Planning has chosen the smallest work shape. Review the shape artifact. If approved, planning will prepare only that execution surface for validating. Do not create beads before this approval.
 ```
 
 ## Red Flags
 
 - skipping learnings or `CONTEXT.md`
+- skipping the mode gate
+- defaulting to 2-4 phases without proving the work needs phases
 - prep/beads before approval
-- later-phase beads
+- future-phase beads
 - pseudo-beads in Markdown
 - vague exit states or missing dependencies
-- HIGH-risk work without a validating spike flag
+- risky assumptions without a spike or validating question

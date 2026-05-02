@@ -8,8 +8,8 @@ Open this when the compact bootstrap in `SKILL.md` is not enough.
 |---|-------|----------------------|--------------|
 | 1 | `khuym:using-khuym` | Routing, go mode, red flags. | Starting any session |
 | 2 | `khuym:exploring` | Identify gray areas, lock decisions into `CONTEXT.md`. | Feature request is vague or new |
-| 3 | `khuym:planning` | Research and synthesize into phase/story artifacts and current-phase beads. | Decisions are locked and ready for planning |
-| 4 | `khuym:validating` | Verify the current phase contract, story map, and bead graph before execution. | Phase plan is approved |
+| 3 | `khuym:planning` | Research, choose mode, synthesize mode-sized artifacts, and create approved-work beads when needed. | Decisions are locked and ready for planning |
+| 4 | `khuym:validating` | Reality-check the chosen shape, then verify artifacts, risks, and beads before execution. | Work shape is approved |
 | 5 | `khuym:swarming` | Launch and tend Codex subagents with local reservations and bv. | Beads are validated |
 | 6 | `khuym:executing` | Bounded worker loop for one bead. | Spawned by swarming |
 | 7 | `khuym:reviewing` | Parallel review gate with P1/P2/P3 findings. | Execution complete |
@@ -74,28 +74,31 @@ Do not auto-resume.
 Trigger: `/go [feature]`, "run the full pipeline", or "go mode".
 
 ```text
-exploring -> [GATE 1] -> planning (whole feature) -> [GATE 2]
-          -> planning (current phase prep) -> validating -> [GATE 3]
+exploring -> [GATE 1] -> planning (work shape) -> [GATE 2]
+          -> planning (current work prep) -> validating -> [GATE 3]
           -> swarming (+ executing xN)
-          -> if more phases remain: planning next phase and repeat
-          -> if final phase complete: reviewing -> [GATE 4] -> compounding -> DONE
+          -> if more approved work remains: planning next work and repeat
+          -> if final work complete: reviewing -> [GATE 4] -> compounding -> DONE
 ```
 
 Gate wording:
 
 - Gate 1: "Decisions locked. Approve CONTEXT.md before planning?"
-- Gate 2: "Phase breakdown is ready. Approve phase-plan.md before current-phase preparation?"
-- Gate 3: "Current phase verified. Approve execution?"
+- Gate 2: "Work shape is ready. Approve before current-work preparation?"
+- Gate 3: "Current work verified. Approve execution?"
 - Gate 4: if P1 > 0, "P1 findings block merge. Fix before proceeding?"; if P1 = 0, "Review complete. Approve merge?"
 
 ## Mode Details
+
+Every planning pass starts with a mode gate. Use the least workflow that can
+honestly protect the work.
 
 `small_change` path:
 
 ```text
 planning (lightweight)
-  -> present one-phase plan and wait for approval
-  -> validating (lightweight)
+  -> present one work shape and wait for approval
+  -> validating reality gate + lightweight readiness
   -> swarming (single worker)
   -> executing
   -> reviewing (lightweight)
@@ -108,7 +111,10 @@ Choose `small_change` only when:
 - no new API surface or data model changes
 - risk is clearly low
 - no gray areas about intent
-- the phase can honestly be expressed as one story
+- the work can honestly be expressed as one story or one direct task
+
+Use `direct_task` when the work is even smaller than `small_change`. Use
+`spike` when one yes/no proof decides whether the plan is real.
 
 `standard_feature` uses the normal chain:
 
@@ -116,7 +122,8 @@ Choose `small_change` only when:
 exploring -> planning -> validating -> swarming -> executing -> reviewing -> compounding
 ```
 
-`high_risk_feature` adds deeper planning, explicit second-opinion refinement, spike discipline, and slower Gate 3 approval.
+`high_risk_feature` adds deeper planning, explicit second-opinion refinement,
+spike discipline, reality-gate proof, and slower Gate 3 approval.
 
 ## Communication Contract
 
@@ -157,9 +164,8 @@ history/<feature>/
   CONTEXT.md
   discovery.md
   approach.md
-  phase-plan.md
-  phase-<n>-contract.md
-  phase-<n>-story-map.md
+  phase-plan.md or work-shape note
+  phase-<n>-contract.md / story-map.md when the mode needs them
 
 history/learnings/
   critical-patterns.md
@@ -175,8 +181,8 @@ history/learnings/
 | Skill | Reads | Writes |
 |-------|-------|--------|
 | exploring | user conversation | `history/<feature>/CONTEXT.md` |
-| planning | `CONTEXT.md`, `critical-patterns.md` | discovery, approach, phase plan, contract/story map, beads |
-| validating | phase artifacts, beads, approach, context | validated phase and spike results |
+| planning | `CONTEXT.md`, `critical-patterns.md` | discovery, approach, mode/shape artifacts, beads when needed |
+| validating | shape artifacts, beads, approach, context | validated work and spike results |
 | swarming | validated beads, state, reservations | spawned worker state, handoff, state updates |
 | executing | bead, reservations, context | implementation commits, `br close`, worker result |
 | reviewing | diff, context, approach, beads | P1/P2/P3 findings |

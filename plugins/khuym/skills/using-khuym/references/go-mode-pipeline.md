@@ -2,7 +2,7 @@
 
 > Load this when executing go mode. Contains the detailed sequence, gate conditions, fallback paths, and config options.
 >
-> Source patterns: CE `/lfg` + `/slfg`, GSD phase loop with plan-checker and verifier, khuym architecture v2.
+> Source patterns: CE `/lfg` + `/slfg`, GSD discuss/research/plan/verify loop, khuym architecture v2.
 
 ---
 
@@ -24,28 +24,28 @@ User: "/go [feature]"
 [GATE 1] ← HARD STOP: "Approve CONTEXT.md?"
        │
        ▼
-[STEP 2] planning (whole feature)
-       │ Output: discovery.md, approach.md, phase-plan.md
+[STEP 2] planning (work shape)
+       │ Output: discovery.md, approach.md, mode-sized shape artifact
        │
        ▼
-[GATE 2] ← HARD STOP: "Approve phase-plan.md?"
+[GATE 2] ← HARD STOP: "Approve work shape?"
        │
        ▼
-[STEP 3] planning (current phase prep)
-       │ Output: phase-<n>-contract.md, phase-<n>-story-map.md, current-phase beads
+[STEP 3] planning (current work prep)
+       │ Output: needed contracts/story maps, current-work beads when needed
        │
        ▼
-[STEP 4] validating (current phase)
-       │ Plan-checker (<=3x) + spikes + bead polish
+[STEP 4] validating (current work)
+       │ Reality gate + plan-checker (<=3x) + spikes + bead polish
        │
        ▼
-[GATE 3] ← HARD STOP: "Current phase verified. Approve execution?"
+[GATE 3] ← HARD STOP: "Current work verified. Approve execution?"
        │
        ▼
 [STEP 5] swarming -> executing (xN workers)
-       │ Current phase only
+       │ Current work only
        │
-       ├── if later phases remain -> return to STEP 3 for the next phase
+       ├── if later work remains -> return to STEP 3 for the next work
        │
        ▼
 [STEP 6] reviewing (after final phase only)
@@ -132,8 +132,9 @@ If user says `revise`, loop back to exploring. If user says `yes`, proceed to St
 - retrieve learnings
 - run discovery
 - synthesize an approach
-- write `history/<feature>/phase-plan.md`
-- show the full phase breakdown in plain English
+- choose the mode: `direct_task`, `spike`, `small_change`, `standard_feature`, or `high_risk_feature`
+- write the smallest shape artifact that fits: direct task note, spike question, small-change work shape, or `history/<feature>/phase-plan.md`
+- show the chosen shape in plain English
 
 **Important:** this step does **not** create beads yet.
 
@@ -141,24 +142,24 @@ If user says `revise`, loop back to exploring. If user says `yes`, proceed to St
 
 ---
 
-## GATE 2: Approve phase-plan.md
+## GATE 2: Approve Work Shape
 
 ```text
 HARD-GATE: Do not proceed until user explicitly approves.
 
 Present:
   "Planning complete for [feature].
-   Proposed phases:
-   - Phase 1: [name] -> [real-world outcome]
-   - Phase 2: [name] -> [real-world outcome]
-   - Phase 3: [name] -> [real-world outcome]
+   Mode: [direct_task / spike / small_change / standard_feature / high_risk_feature]
+   Proposed shape:
+   - [work item / spike question / Phase 1 outcome]
+   - [only list more phases when the mode needs them]
 
-   Stories inside each phase are documented in history/<feature>/phase-plan.md.
+   Why this is the least workflow that protects the work: [one sentence]
 
-   Approve this phase/story breakdown before current-phase preparation? (yes / revise / show full phase-plan.md)"
+   Approve this work shape before current preparation? (yes / revise / show full artifact)"
 ```
 
-If user says `revise`, return to the planning pass that owns `phase-plan.md`. If user says `yes`, proceed to Step 3.
+If user says `revise`, return to the planning pass that owns the shape artifact. If user says `yes`, proceed to Step 3.
 
 ---
 
@@ -166,79 +167,81 @@ If user says `revise`, return to the planning pass that owns `phase-plan.md`. If
 
 **Invoke:** Load `khuym:planning` again in current-phase preparation mode.
 
-**Input:** approved `phase-plan.md`, `approach.md`, `CONTEXT.md`.
+**Input:** approved shape artifact, `approach.md`, `CONTEXT.md`.
 
 **The second planning pass will:**
 
-- select the current phase from `phase-plan.md`
-- write `history/<feature>/phase-<n>-contract.md`
-- write `history/<feature>/phase-<n>-story-map.md`
-- create beads only for that phase
+- select the current execution surface from the approved shape
+- write only the contract/story-map artifacts the mode needs
+- create beads only for that approved execution surface
 
 **Rules:**
 
-- default to the first unprepared phase
-- never create later-phase beads early
-- every bead must include `Phase <n>` and `Story <m>` context
+- default to the first unprepared approved work item
+- never create future-work beads early
+- every bead must include mode and work context; include `Phase <n>` and `Story <m>` only when those exist
 
 **Update state.json:** set `phase` to `go-mode/validating`
 
 ---
 
-## Step 4: Validating (Current Phase)
+## Step 4: Validating (Current Work)
 
 **Invoke:** Load `khuym:validating` skill.
 
-**Input:** current phase beads, `phase-plan.md`, current phase contract/story map, `approach.md`, `CONTEXT.md`.
+**Input:** current work beads when present, approved shape artifact, current work artifacts, `approach.md`, `CONTEXT.md`.
 
 **The khuym:validating skill will:**
 
-- Phase 0: orient on the current phase and confirm the phase plan was approved
-- Phase 1: plan-checker loop (<=3 iterations, 8 dimensions)
-- Phase 2: spike execution for current-phase HIGH-risk items
-- Phase 3: bead polishing (`bv --robot-suggest`, `--robot-insights`, `--robot-priority`)
-- Phase 4: current-phase exit-state readiness review
+- Phase 0: orient on mode/current work and confirm the shape was approved
+- Phase 1: reality gate against current repo/system truth
+- Phase 2: plan-checker loop (<=3 iterations, mode-sized dimensions)
+- Phase 3: spike execution for assumptions that can invalidate the path
+- Phase 4: bead polishing when beads exist (`bv --robot-suggest`, `--robot-insights`, `--robot-priority`)
+- Phase 5: current-work exit-state readiness review
 
 **Update state.json:** set `phase` to `go-mode/gate-3`
 
 ---
 
-## GATE 3: Approve Current-Phase Execution
+## GATE 3: Approve Current-Work Execution
 
 ```text
 HARD-GATE: This is the most critical gate. Do not proceed until user explicitly approves.
 
 Present:
-  "Validation complete for [feature], Phase <n>.
-   [N] beads ready for current-phase execution.
-   Risk: [X] HIGH items -> spikes: [all passed / N failed]
+  "Validation complete for [feature], current work.
+   Mode: [mode].
+   [N] beads ready for current work execution.
+   Reality gate: [passed / failed / spike required]
+   Risk: [X] assumptions -> spikes: [all passed / N failed]
 
    Any unresolved concerns: [list or 'none']
 
-   Current phase verified. Approve execution? (yes / review beads / no - revise plan)"
+   Current work verified. Approve execution? (yes / review beads / no - revise plan)"
 ```
 
 If user says `no` or `revise`, return to planning or validating. If user says `yes`, proceed to Step 5.
 
 ---
 
-## Step 5: Swarming + Executing (Current Phase)
+## Step 5: Swarming + Executing (Current Work)
 
 **Invoke:** Load `khuym:swarming` skill.
 
 **The khuym:swarming skill will:**
 
 - initialize local reservation state
-- spawn workers for the current phase bead set
-- monitor current-phase execution
-- verify current-phase beads closed
+- spawn workers for the current work bead set
+- monitor current-work execution
+- verify current-work beads closed
 
-### Phase loop rule
+### Work loop rule
 
-After current-phase execution completes:
+After current-work execution completes:
 
-- if `phase-plan.md` shows later phases still pending -> return to Step 3 for the next phase
-- if the current phase was the final phase -> proceed to Step 6
+- if the approved shape shows later work still pending -> return to Step 3 for the next work item or phase
+- if the current work was final -> proceed to Step 6
 
 **Update state.json:** set `phase` to either:
 
@@ -325,12 +328,12 @@ Delete `.khuym/HANDOFF.json` if it exists.
 -> Re-present GATE 1
 ```
 
-### If the user rejects phase-plan.md at GATE 2
+### If the user rejects the work shape at GATE 2
 
 ```text
--> Identify which phase names, boundaries, or stories feel wrong
--> Return to the whole-feature planning pass
--> Update phase-plan.md
+-> Identify whether the mode, boundaries, proof, phase names, or stories feel wrong
+-> Return to the planning pass
+-> Update the shape artifact
 -> Re-present GATE 2
 ```
 
@@ -340,15 +343,15 @@ Delete `.khuym/HANDOFF.json` if it exists.
 -> Present failing dimensions to user
 -> Ask: "Return to planning with these specific concerns?"
 -> Load planning with the failure report as context
--> Re-run validating after the current phase is re-prepared
+-> Re-run validating after the current work is re-prepared
 ```
 
 ### If a spike fails
 
 ```text
 -> STOP: do not proceed to GATE 3
--> Present: "Spike [id] failed: [reason]. Current phase is blocked."
--> Options: (a) Revise approach, (b) Descope the risky part, (c) Re-split phase boundaries
+-> Present: "Spike [id] failed: [reason]. Current work is blocked."
+-> Options: (a) Revise approach, (b) Descope the risky part, (c) Change mode or boundaries
 -> If revise: return to planning and then re-run validating
 ```
 
@@ -356,7 +359,7 @@ Delete `.khuym/HANDOFF.json` if it exists.
 
 ```text
 -> Write HANDOFF.json
--> Present: "Context budget reached. Current phase swarm paused.
+-> Present: "Context budget reached. Current work swarm paused.
             [X] beads complete, [Y] in flight.
             Resume in a new session with HANDOFF.json."
 -> End turn gracefully
@@ -405,15 +408,16 @@ For small fixes (<=3 files, LOW risk, no gray areas):
 
 ```text
 planning (lightweight)
-  -> one-phase plan
+  -> one work shape
   -> approval gate
-  -> one current-phase bead
+  -> one current-work bead when needed
   -> no multi-model refinement
   ↓
 validating (lightweight)
+  -> reality gate
   -> abbreviated structural verification
   -> skip spikes (LOW risk)
-  -> bv check only
+  -> bv check only when beads exist
   ↓
 swarming -> executing (single worker)
   ↓
@@ -429,15 +433,15 @@ compounding (only if lesson learned)
 
 **Why 4 gates, not 3?**
 
-Because the phase breakdown itself is now a first-class human decision. `CONTEXT.md` locks intent, `phase-plan.md` locks the feature shape, validating locks execution-readiness for the current phase, and reviewing locks merge-readiness.
+Because the work shape itself is now a first-class human decision. `CONTEXT.md` locks intent, the shape artifact locks the execution shape, validating locks reality and readiness for the current work, and reviewing locks merge-readiness.
 
 **Why is GATE 3 the most critical?**
 
-Execution is the only phase that creates source-code side effects. A broken current phase discovered post-execution costs far more to fix than one caught in validating.
+Execution is the only step that creates source-code side effects. A broken current work shape discovered post-execution costs far more to fix than one caught in validating.
 
 **Why does planning now happen in two passes?**
 
-Because "show me the whole shape" and "prepare one phase for execution" are different jobs. Combining them made phase/story explanations too abstract and pushed bead creation earlier than users wanted.
+Because "show me the whole shape" and "prepare the current execution surface" are different jobs. Combining them made explanations too abstract and pushed bead creation earlier than users wanted.
 
 **What tone should the model use at every gate?**
 

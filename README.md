@@ -13,9 +13,9 @@ Ask for a feature like:
 Khuym is designed to move that request through a repeatable chain:
 
 1. `khuym:exploring` locks the missing decisions into `CONTEXT.md`.
-2. `khuym:planning` turns those decisions into a phase plan, a current-phase contract, a story map, and beads.
-3. `khuym:validating` checks that the current phase is sound before any implementation starts.
-4. `khuym:swarming` and `khuym:executing` implement the current phase with reservations and live graph coordination.
+2. `khuym:planning` turns those decisions into the smallest fitting work shape and beads when needed.
+3. `khuym:validating` checks that the shape fits the current system before any implementation starts.
+4. `khuym:swarming` and `khuym:executing` implement the validated work with reservations and live graph coordination.
 5. `khuym:reviewing` verifies the work and records P1/P2/P3 findings.
 6. `khuym:compounding` captures durable learnings for future work.
 
@@ -75,8 +75,8 @@ Khuym turns upstream ideas into a custom workflow contract rather than a loose b
 Khuym treats software delivery as a staged chain where each skill hands off explicit artifacts to the next stage:
 
 - `khuym:exploring` extracts decisions and locks them in `CONTEXT.md`
-- `khuym:planning` researches the work, writes a phase contract, maps the internal stories, and only then decomposes to beads
-- `khuym:validating` verifies the phase contract, story map, and bead graph before execution begins
+- `khuym:planning` researches the work, chooses the smallest fitting mode, writes only the needed shape artifacts, and only then decomposes approved work to beads
+- `khuym:validating` reality-checks the chosen shape against the current system, then verifies artifacts, risks, and beads before execution begins
 - `khuym:swarming` launches and coordinates worker subagents
 - `khuym:executing` runs the worker loop (claim, reserve, implement, verify, close)
 - `khuym:reviewing` performs multi-agent review plus acceptance checks
@@ -133,7 +133,7 @@ That helper manages `.khuym/reservations.json`, which is Khuym's local file-owne
 ## Compact Workflow Example
 
 1. `khuym:exploring` captures the decisions and constraints for a feature.
-2. `khuym:planning` and `khuym:validating` turn those decisions into a clear phase contract, a story map, and verified executable beads.
+2. `khuym:planning` and `khuym:validating` turn those decisions into the smallest credible work shape and verified executable beads when beads are needed.
 3. `khuym:swarming` and `khuym:executing` implement the work in parallel with reservations and bead status updates.
 4. `khuym:reviewing` enforces quality gates, then `khuym:compounding` captures reusable learnings.
 
@@ -211,8 +211,8 @@ These are the core delivery stages in the Khuym workflow:
 | Skill | Purpose |
 |-------|---------|
 | `khuym:exploring` | Socratic dialogue → locked decisions in CONTEXT.md |
-| `khuym:planning` | Research + synthesis → approach.md + phase-contract.md + story-map.md + beads |
-| `khuym:validating` | Phase/story/bead verification (8 dims) + spikes + bead polishing — **THE GATE** |
+| `khuym:planning` | Research + synthesis → mode gate + approach.md + mode-sized artifacts + beads when needed |
+| `khuym:validating` | Reality gate + mode-sized verification + spikes + bead polishing — **THE GATE** |
 | `khuym:swarming` | Launch + tend parallel Codex subagents with local reservations |
 | `khuym:executing` | Per-agent worker loop: priority → reserve → implement → close |
 | `khuym:reviewing` | Specialist review passes + 3-level verification + UAT |
