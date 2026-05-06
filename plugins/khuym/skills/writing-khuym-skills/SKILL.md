@@ -89,6 +89,19 @@ description: Use when creating skills — run baseline test, write minimal skill
 description: Use when creating a new khuym skill or editing an existing one
 ```
 
+**Dependency metadata style:**
+When a Khuym skill has runtime dependencies, write `metadata.dependencies` as a mapping keyed by dependency id. Do not use YAML arrays of objects such as `- id: beads-cli`; generic skill evaluators may reject that frontmatter shape.
+
+```yaml
+metadata:
+  dependencies:
+    beads-cli:
+      kind: command
+      command: br
+      missing_effect: unavailable
+      reason: The skill reads and updates beads.
+```
+
 **Apply persuasion principles:**
 
 | Principle | Implementation | Use For |

@@ -1,63 +1,77 @@
-## MCP Agent Mail — Multi-Agent Coordination
+## Khuym Local Reservations — Same-Session Codex Coordination
 
-A mail-like layer that lets coding agents coordinate asynchronously via MCP tools and resources. Provides identities, inbox/outbox, searchable threads, and advisory file reservations with human-auditable artifacts in Git.
+Khuym's normal same-session coordination substrate is now:
+
+- Codex subagents for parallel execution
+- the parent Codex thread for worker results and rescues
+- repo-local file reservations stored in `.khuym/reservations.json`
+
+This keeps same-session swarms local-first. No external mail server is required for the default path.
 
 ### Why It's Useful
 
-- **Prevents conflicts:** Explicit file reservations (leases) for files/globs
-- **Token-efficient:** Messages stored in per-project archive, not in context
-- **Quick reads:** `resource://inbox/...`, `resource://thread/...`
+- **Prevents conflicts:** Explicit local reservations for files and globs
+- **Matches Codex runtime:** `spawn_agent(...)`, `send_input(...)`, and `wait_agent(...)` are the coordination surface
+- **Auditable:** Reservation state lives in the repo under `.khuym/`
 
 ### Same Repository Workflow
 
-1. **Register identity:**
-   ```
-   ensure_project(project_key=<abs-path>)
-   register_agent(project_key, program, model)
+1. **Pick ready work (Beads):**
+   ```bash
+   br ready --json
    ```
 
 2. **Reserve files before editing:**
-   ```
-   file_reservation_paths(project_key, agent_name, ["src/**"], ttl_seconds=3600, exclusive=true)
-   ```
-
-3. **Communicate with threads:**
-   ```
-   send_message(..., thread_id="FEAT-123")
-   fetch_inbox(project_key, agent_name)
-   acknowledge_message(project_key, agent_name, message_id)
+   ```bash
+   node .codex/khuym_reservations.mjs reserve \
+     --agent <CodexNickname> \
+     --bead br-123 \
+     --path "src/**" \
+     --ttl 3600 \
+     --json
    ```
 
-4. **Quick reads:**
-   ```
-   resource://inbox/{Agent}?project=<abs-path>&limit=20
-   resource://thread/{id}?project=<abs-path>&include_bodies=true
+3. **Coordinate through the parent Codex thread:**
+   - parent spawns workers with `spawn_agent(...)`
+   - parent sends follow-up context with `send_input(...)`
+   - workers return `[DONE]`, `[BLOCKED]`, `[HANDOFF]`, or `[NOOP]` to the parent thread
+
+4. **Inspect or clean reservation state:**
+   ```bash
+   node .codex/khuym_reservations.mjs list --active-only --json
+   node .codex/khuym_reservations.mjs sweep --json
+   node .codex/khuym_reservations.mjs release --agent <CodexNickname> --bead br-123 --json
    ```
 
-### Macros vs Granular Tools
+### Shell Guard
 
-- **Prefer macros for speed:** `macro_start_session`, `macro_prepare_thread`, `macro_file_reservation_cycle`, `macro_contact_handshake`
-- **Use granular tools for control:** `register_agent`, `file_reservation_paths`, `send_message`, `fetch_inbox`, `acknowledge_message`
+The repo's `PreToolUse` hook is Bash-only. For ownership-aware blocking on write-heavy shell commands, prefix the command with your worker identity:
+
+```bash
+KHUYM_AGENT_NAME=<CodexNickname> git add src/file.ts
+```
+
+Without that identity, the hook can still warn on overlapping reservations, but it cannot safely decide whether the reservation belongs to you.
 
 ### Common Pitfalls
 
-- `"from_agent not registered"`: Always `register_agent` in the correct `project_key` first
-- `"FILE_RESERVATION_CONFLICT"`: Adjust patterns, wait for expiry, or use non-exclusive reservation
-- **Auth errors:** If JWT+JWKS enabled, include bearer token with matching `kid`
+- reservation created but never released: run `node .codex/khuym_reservations.mjs list --active-only --json`
+- write-heavy shell command without `KHUYM_AGENT_NAME=...`: the hook may warn instead of block
+- worker waiting silently for follow-up: return a blocker or handoff summary to the parent thread instead
 
 ---
 
 ## Beads (br) — Dependency-Aware Issue Tracking
 
-Beads provides a lightweight, dependency-aware issue database and CLI (`br` - beads_rust) for selecting "ready work," setting priorities, and tracking status. It complements MCP Agent Mail's messaging and file reservations.
+Beads provides a lightweight, dependency-aware issue database and CLI (`br` - beads_rust) for selecting "ready work," setting priorities, and tracking status. It complements Codex subagent coordination and local reservations.
 
 **Important:** `br` is non-invasive—it NEVER runs git commands automatically. You must manually commit changes after `br sync --flush-only`.
 
 ### Conventions
 
-- **Single source of truth:** Beads for task status/priority/dependencies; Agent Mail for conversation and audit
-- **Shared identifiers:** Use Beads issue ID (e.g., `br-123`) as Mail `thread_id` and prefix subjects with `[br-123]`
-- **Reservations:** When starting a task, call `file_reservation_paths()` with the issue ID in `reason`
+- **Single source of truth:** Beads for task status, priority, and dependencies
+- **Shared identifiers:** Use the bead id (for example `br-123`) in reservation metadata, worker summaries, and commit messages
+- **Reservations:** When starting a task, reserve the expected edit surface with the bead id
 
 ### Typical Agent Flow
 
@@ -66,36 +80,32 @@ Beads provides a lightweight, dependency-aware issue database and CLI (`br` - be
    br ready --json  # Choose highest priority, no blockers
    ```
 
-2. **Reserve edit surface (Mail):**
-   ```
-   file_reservation_paths(project_key, agent_name, ["src/**"], ttl_seconds=3600, exclusive=true, reason="br-123")
-   ```
-
-3. **Announce start (Mail):**
-   ```
-   send_message(..., thread_id="br-123", subject="[br-123] Start: <title>", ack_required=true)
+2. **Reserve edit surface:**
+   ```bash
+   node .codex/khuym_reservations.mjs reserve --agent <CodexNickname> --bead br-123 --path "src/**" --ttl 3600 --json
    ```
 
-4. **Work and update:** Reply in-thread with progress
+3. **Work and report through the parent Codex thread:**
+   - parent thread records the spawned worker
+   - worker returns `[DONE]`, `[BLOCKED]`, `[HANDOFF]`, or `[NOOP]`
 
 5. **Complete and release:**
    ```bash
    br close 123 --reason "Completed"
    br sync --flush-only  # Export to JSONL (no git operations)
    ```
+   ```bash
+   node .codex/khuym_reservations.mjs release --agent <CodexNickname> --bead br-123 --json
    ```
-   release_file_reservations(project_key, agent_name, paths=["src/**"])
-   ```
-   Final Mail reply: `[br-123] Completed` with summary
+   Final worker result: `[DONE] br-123 ...`
 
 ### Mapping Cheat Sheet
 
 | Concept | Value |
 |---------|-------|
-| Mail `thread_id` | `br-###` |
-| Mail subject | `[br-###] ...` |
-| File reservation `reason` | `br-###` |
-| Commit messages | Include `br-###` for traceability |
+| Worker result / summary | include `br-###` |
+| Reservation `--bead` | `br-###` |
+| Commit messages | include `br-###` for traceability |
 
 ---
 
@@ -103,7 +113,7 @@ Beads provides a lightweight, dependency-aware issue database and CLI (`br` - be
 
 bv is a graph-aware triage engine for Beads projects (`.beads/beads.jsonl`). It computes PageRank, betweenness, critical path, cycles, HITS, eigenvector, and k-core metrics deterministically.
 
-**Scope boundary:** bv handles *what to work on* (triage, priority, planning). For agent-to-agent coordination (messaging, work claiming, file reservations), use MCP Agent Mail.
+**Scope boundary:** `bv` handles *what to work on* (triage, priority, planning). For same-session coordination and file ownership, use Codex subagents plus local reservations.
 
 **CRITICAL: Use ONLY `--robot-*` flags. Bare `bv` launches an interactive TUI that blocks your session.**
 
@@ -405,8 +415,8 @@ khuym:using-khuym
 1. Never execute without validating.
 2. `CONTEXT.md` is the source of truth for locked decisions.
 3. If context usage passes roughly 65%, write `.khuym/HANDOFF.json` and pause cleanly.
-4. Treat `.khuym/state.json` as the routing mirror and `.khuym/STATE.md` as the human-readable narrative; keep them aligned.
-5. After compaction, re-read `AGENTS.md`, run `node .codex/khuym_status.mjs --json` if present, then re-open `.khuym/HANDOFF.json`, `.khuym/state.json`, `.khuym/STATE.md`, and the active feature context before more work.
+4. Treat `.khuym/state.json` as the single runtime state file for routing, current focus, and operator notes.
+5. After compaction, re-read `AGENTS.md`, run `node .codex/khuym_status.mjs --json` if present, then re-open `.khuym/HANDOFF.json`, `.khuym/state.json`, and the active feature context before more work.
 6. P1 review findings block merge.
 
 ## Working Files
@@ -414,9 +424,9 @@ khuym:using-khuym
 ```
 .khuym/
   onboarding.json     ← onboarding state for the Khuym plugin
-  state.json          ← machine-readable routing snapshot for agents and tools
-  STATE.md            ← current phase and focus
+  state.json          ← single runtime state file for agents, tools, and humans
   HANDOFF.json        ← pause/resume artifact
+  reservations.json   ← local file reservations for same-session Codex swarms
 
 history/<feature>/
   CONTEXT.md          ← locked decisions
@@ -433,6 +443,7 @@ history/learnings/
 .codex/
   khuym_status.mjs    ← read-only scout command for onboarding, state, and handoff
   khuym_state.mjs     ← shared state helpers used by the scout command
+  khuym_reservations.mjs ← local reservation helper used by swarming, executing, and hooks
 
 ## Codex Guardrails
 
@@ -447,6 +458,6 @@ history/learnings/
 Before ending a substantial Khuym work chunk:
 
 1. Update or close the active bead/task if one exists.
-2. Leave `.khuym/state.json`, `.khuym/STATE.md`, and `.khuym/HANDOFF.json` consistent with the current pause/resume state.
+2. Leave `.khuym/state.json` and `.khuym/HANDOFF.json` consistent with the current pause/resume state.
 3. Mention any remaining blockers, open questions, or next actions in the final response.
 <!-- KHUYM:END -->

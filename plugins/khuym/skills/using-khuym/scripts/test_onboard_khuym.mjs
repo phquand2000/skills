@@ -26,6 +26,17 @@ function runSessionStartHook(root, payload = { cwd: root }, env = {}) {
   return JSON.parse(stdout);
 }
 
+function runPreToolUseHook(root, payload, env = {}) {
+  const hookPath = path.join(root, ".codex", "hooks", "khuym_pre_tool_use.mjs");
+  const stdout = execFileSync("node", [hookPath], {
+    cwd: root,
+    encoding: "utf8",
+    input: JSON.stringify(payload),
+    env: { ...process.env, ...env },
+  });
+  return JSON.parse(stdout);
+}
+
 async function startMockGkgServer(routes) {
   const child = spawn(
     process.execPath,
@@ -97,14 +108,31 @@ test("applyRepo creates full repo onboarding with node-based hooks", () => {
     assert.ok(fs.existsSync(path.join(root, ".codex", "khuym_status.mjs")));
     assert.ok(fs.existsSync(path.join(root, ".codex", "khuym_state.mjs")));
     assert.ok(fs.existsSync(path.join(root, ".codex", "khuym_dependencies.mjs")));
+    assert.ok(fs.existsSync(path.join(root, ".codex", "khuym_reservations.mjs")));
+    assert.equal(fs.existsSync(path.join(root, ".khuym", "STATE.md")), false);
     assert.match(
       fs.readFileSync(path.join(root, ".codex", "hooks.json"), "utf8"),
       /node \.codex\/hooks\/khuym_session_start\.mjs/,
     );
-    assert.equal(
-      JSON.parse(fs.readFileSync(path.join(root, ".khuym", "state.json"), "utf8")).phase,
-      "idle",
-    );
+    const state = JSON.parse(fs.readFileSync(path.join(root, ".khuym", "state.json"), "utf8"));
+    assert.equal(state.schema_version, "1.1");
+    assert.equal(state.phase, "idle");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("applyRepo removes legacy STATE.md when present", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-onboard-"));
+
+  try {
+    fs.mkdirSync(path.join(root, ".khuym"), { recursive: true });
+    fs.writeFileSync(path.join(root, ".khuym", "STATE.md"), "focus: legacy\nphase: old\n", "utf8");
+
+    const result = applyRepo(root, false);
+
+    assert.equal(result.status, "up_to_date");
+    assert.equal(fs.existsSync(path.join(root, ".khuym", "STATE.md")), false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -204,9 +232,127 @@ test("installed khuym_status script reports onboarding and state", () => {
     assert.equal(status.onboarding.exists, true);
     assert.equal(status.state_json.exists, true);
     assert.equal(status.state_json.phase, "idle");
+    assert.equal("state_markdown" in status, false);
     assert.ok(status.dependency_health);
     assert.ok(typeof status.dependency_health.summary.missing_dependencies === "number");
     assert.ok(status.next_reads.includes("AGENTS.md"));
+    assert.equal(status.next_reads.includes(".khuym/STATE.md"), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("reservation helper stores, lists, and releases local reservations", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-reservations-"));
+
+  try {
+    applyRepo(root, false);
+
+    const helperPath = path.join(root, ".codex", "khuym_reservations.mjs");
+    const reserveText = execFileSync(
+      "node",
+      [helperPath, "reserve", "--agent", "Peirce", "--bead", "br-1", "--path", "src/**", "--ttl", "600", "--json"],
+      { cwd: root, encoding: "utf8" },
+    );
+    const reservePayload = JSON.parse(reserveText);
+    assert.equal(reservePayload.ok, true);
+    assert.equal(reservePayload.reservation.agent, "Peirce");
+
+    const listPayload = JSON.parse(
+      execFileSync("node", [helperPath, "list", "--active-only", "--json"], {
+        cwd: root,
+        encoding: "utf8",
+      }),
+    );
+    assert.equal(listPayload.reservations.length, 1);
+    assert.equal(listPayload.reservations[0].bead_id, "br-1");
+
+    const releasePayload = JSON.parse(
+      execFileSync("node", [helperPath, "release", "--agent", "Peirce", "--bead", "br-1", "--json"], {
+        cwd: root,
+        encoding: "utf8",
+      }),
+    );
+    assert.equal(releasePayload.released_count, 1);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pre-tool hook blocks write-heavy bash commands that hit another worker reservation", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-hook-block-"));
+
+  try {
+    applyRepo(root, false);
+    fs.mkdirSync(path.join(root, "src"), { recursive: true });
+    fs.writeFileSync(path.join(root, "src", "app.ts"), "export const value = 1;\n", "utf8");
+
+    execFileSync(
+      "node",
+      [
+        path.join(root, ".codex", "khuym_reservations.mjs"),
+        "reserve",
+        "--agent",
+        "Curie",
+        "--bead",
+        "br-7",
+        "--path",
+        "src/**",
+        "--json",
+      ],
+      { cwd: root, encoding: "utf8" },
+    );
+
+    const payload = runPreToolUseHook(root, {
+      cwd: root,
+      agent_name: "Peirce",
+      tool_input: {
+        command: "git add src/app.ts",
+      },
+    });
+
+    assert.equal(payload.continue, false);
+    assert.match(payload.systemMessage, /local reservations blocked/i);
+    assert.match(payload.systemMessage, /Curie/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pre-tool hook warns instead of blocking when agent identity is unavailable", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-hook-warn-"));
+
+  try {
+    applyRepo(root, false);
+    fs.mkdirSync(path.join(root, "src"), { recursive: true });
+    fs.writeFileSync(path.join(root, "src", "app.ts"), "export const value = 1;\n", "utf8");
+
+    execFileSync(
+      "node",
+      [
+        path.join(root, ".codex", "khuym_reservations.mjs"),
+        "reserve",
+        "--agent",
+        "Curie",
+        "--bead",
+        "br-7",
+        "--path",
+        "src/**",
+        "--json",
+      ],
+      { cwd: root, encoding: "utf8" },
+    );
+
+    const payload = runPreToolUseHook(root, {
+      cwd: root,
+      tool_input: {
+        command: "git add src/app.ts",
+      },
+    });
+
+    assert.equal(payload.continue, true);
+    assert.match(payload.systemMessage, /warning instead of blocking/i);
+    assert.match(payload.systemMessage, /KHUYM_AGENT_NAME/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -284,12 +430,12 @@ test("installed khuym_status text distinguishes missing commands from missing MC
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -470,12 +616,12 @@ test("checkRepo promotes missing dependency data into an operator-facing warning
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -526,12 +672,12 @@ test("onboard check JSON includes dependency warning summary when dependencies a
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -593,12 +739,12 @@ test("session-start hook emits dependency warning with command-vs-MCP split when
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -681,12 +827,12 @@ test("entry surfaces share the same missing-command vs missing-MCP wording bound
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: missing-cli",
+        "    missing-cli:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required for test",
-        "    - id: missing-server",
+        "    missing-server:",
         "      kind: mcp_server",
         "      server_names: [definitely_missing_mcp_server_name]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -756,12 +902,12 @@ test("dependency helper marks missing command and missing mcp_server dependencie
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: must-have-command",
+        "    must-have-command:",
         "      kind: command",
         "      command: definitely-missing-command",
         "      missing_effect: unavailable",
         "      reason: required",
-        "    - id: am-server",
+        "    am-server:",
         "      kind: mcp_server",
         "      server_names: [mcp_agent_mail]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -796,6 +942,89 @@ test("dependency helper marks missing command and missing mcp_server dependencie
   }
 });
 
+test("dependency helper parses nested dependency list items", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-deps-nested-"));
+  const skillsRoot = path.join(root, "plugins", "khuym", "skills");
+
+  try {
+    const alphaDir = path.join(skillsRoot, "alpha");
+    fs.mkdirSync(alphaDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(alphaDir, "SKILL.md"),
+      [
+        "---",
+        "name: alpha",
+        "description: Use when testing nested dependency metadata.",
+        "metadata:",
+        "  dependencies:",
+        "    -",
+        "      id: must-have-command",
+        "      kind: command",
+        "      command: definitely-missing-command",
+        "      missing_effect: unavailable",
+        "      reason: required",
+        "---",
+        "",
+        "# alpha",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const report = buildKhuymDependencyReport({
+      repoRoot: root,
+      skillsRoot,
+      commandProbe: () => ({ available: false, detail: "missing in test" }),
+    });
+
+    assert.equal(report.summary.declared_dependencies, 1);
+    assert.equal(report.skills[0].missing_dependencies[0].id, "must-have-command");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("dependency helper parses dependency block scalars for plugin-eval compatibility", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-deps-block-"));
+  const skillsRoot = path.join(root, "plugins", "khuym", "skills");
+
+  try {
+    const alphaDir = path.join(skillsRoot, "alpha");
+    fs.mkdirSync(alphaDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(alphaDir, "SKILL.md"),
+      [
+        "---",
+        "name: alpha",
+        "description: Use when testing block scalar dependency metadata.",
+        "metadata:",
+        "  dependencies: |",
+        "    - id: must-have-command",
+        "      kind: command",
+        "      command: definitely-missing-command",
+        "      missing_effect: unavailable",
+        "      reason: required",
+        "---",
+        "",
+        "# alpha",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const report = buildKhuymDependencyReport({
+      repoRoot: root,
+      skillsRoot,
+      commandProbe: () => ({ available: false, detail: "missing in test" }),
+    });
+
+    assert.equal(report.summary.declared_dependencies, 1);
+    assert.equal(report.skills[0].missing_dependencies[0].id, "must-have-command");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("dependency helper respects declared MCP config_sources and can use packaged manifests", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-mcp-sources-"));
   const pluginRoot = path.join(root, "plugins", "khuym");
@@ -813,10 +1042,12 @@ test("dependency helper respects declared MCP config_sources and can use package
       path.join(pluginRoot, ".mcp.json"),
       JSON.stringify(
         {
-          gkg: {
-            type: "http",
-            url: "http://localhost:27495/mcp",
-            includeTools: ["repo_map"],
+          mcpServers: {
+            gkg: {
+              type: "sse",
+              url: "http://localhost:27495/mcp/sse",
+              includeTools: ["repo_map"],
+            },
           },
         },
         null,
@@ -845,7 +1076,7 @@ test("dependency helper respects declared MCP config_sources and can use package
         "name: alpha",
         "metadata:",
         "  dependencies:",
-        "    - id: gkg",
+        "    gkg:",
         "      kind: mcp_server",
         "      server_names: [gkg]",
         "      config_sources: [repo_codex_config, global_codex_config]",
@@ -866,7 +1097,7 @@ test("dependency helper respects declared MCP config_sources and can use package
         "name: beta",
         "metadata:",
         "  dependencies:",
-        "    - id: gkg",
+        "    gkg:",
         "      kind: mcp_server",
         "      server_names: [gkg]",
         "      config_sources: [plugin_mcp_manifest]",
@@ -902,6 +1133,83 @@ test("dependency helper respects declared MCP config_sources and can use package
   }
 });
 
+test("dependency helper still accepts legacy root-level plugin MCP manifests", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "khuym-mcp-legacy-"));
+  const pluginRoot = path.join(root, "plugins", "khuym");
+  const skillsRoot = path.join(root, "plugins", "khuym", "skills");
+
+  try {
+    const betaDir = path.join(skillsRoot, "beta");
+    const pluginManifestDir = path.join(pluginRoot, ".codex-plugin");
+    fs.mkdirSync(betaDir, { recursive: true });
+    fs.mkdirSync(pluginManifestDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(pluginRoot, ".mcp.json"),
+      JSON.stringify(
+        {
+          gkg: {
+            type: "http",
+            url: "http://localhost:27495/mcp",
+            includeTools: ["repo_map"],
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(pluginManifestDir, "plugin.json"),
+      JSON.stringify(
+        {
+          name: "khuym",
+          version: "0.0.0-test",
+          mcpServers: "./.mcp.json",
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    fs.writeFileSync(
+      path.join(betaDir, "SKILL.md"),
+      [
+        "---",
+        "name: beta",
+        "metadata:",
+        "  dependencies:",
+        "    gkg:",
+        "      kind: mcp_server",
+        "      server_names: [gkg]",
+        "      config_sources: [plugin_mcp_manifest]",
+        "      missing_effect: unavailable",
+        "      reason: packaged-manifest fixture",
+        "---",
+        "",
+        "# beta",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const report = buildKhuymDependencyReport({
+      repoRoot: root,
+      skillsRoot,
+      globalCodexConfigPath: path.join(root, "missing-global.toml"),
+      commandProbe: () => ({ available: true, detail: "unused in mcp source test" }),
+    });
+
+    const beta = report.skills.find((skill) => skill.skill_name === "khuym:beta");
+
+    assert.equal(beta?.status, "available");
+    assert.deepEqual(beta?.dependencies[0].probe.matched_sources, ["plugin_mcp_manifest"]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("packaged Khuym inventory stays fully covered and the docs explain the declaration contract", () => {
   const report = buildKhuymDependencyReport({ repoRoot: LOCAL_REPO_ROOT });
   const skillText = fs.readFileSync(LOCAL_USING_KHUYM_SKILL_PATH, "utf8");
@@ -929,7 +1237,7 @@ test("packaged Khuym inventory stays fully covered and the docs explain the decl
     /bash scripts\/check-markdown-links\.sh plugins\/khuym\/skills\/using-khuym\/SKILL\.md/,
   );
   assert.match(skillText, /bash scripts\/sync-skills\.sh --dry-run/);
-  assert.deepEqual(pluginMcp.gkg.includeTools, [
+  assert.deepEqual(pluginMcp.mcpServers.gkg.includeTools, [
     "list_projects",
     "index_project",
     "repo_map",
@@ -938,6 +1246,8 @@ test("packaged Khuym inventory stays fully covered and the docs explain the decl
     "get_definition",
     "read_definitions",
   ]);
+  assert.equal(pluginMcp.mcpServers["morph-mcp"].env.ENABLED_TOOLS, "codebase_search");
+  assert.deepEqual(pluginMcp.mcpServers["morph-mcp"].includeTools, ["codebase_search"]);
 });
 
 test("getNodeRuntimeStatus enforces the minimum supported major version", () => {

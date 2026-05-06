@@ -13,9 +13,9 @@ Ask for a feature like:
 Khuym is designed to move that request through a repeatable chain:
 
 1. `khuym:exploring` locks the missing decisions into `CONTEXT.md`.
-2. `khuym:planning` turns those decisions into a phase plan, a current-phase contract, a story map, and beads.
-3. `khuym:validating` checks that the current phase is sound before any implementation starts.
-4. `khuym:swarming` and `khuym:executing` implement the current phase with reservations and live graph coordination.
+2. `khuym:planning` turns those decisions into the smallest fitting work shape: direct work, a phase plan, or an epic map plus current story pack.
+3. `khuym:validating` proves the current story/work is feasible against the real system before implementation starts.
+4. `khuym:swarming` and `khuym:executing` implement the validated work with reservations and live graph coordination.
 5. `khuym:reviewing` verifies the work and records P1/P2/P3 findings.
 6. `khuym:compounding` captures durable learnings for future work.
 
@@ -41,19 +41,19 @@ Do not reach for the full chain when:
 Khuym keeps one core workflow but presents it in three user-facing modes:
 
 - `small_change` — lightweight planning and validating for bounded low-risk work
-- `standard_feature` — the default full Khuym workflow
-- `high_risk_feature` — the full workflow plus deeper planning scrutiny and stronger spike discipline
+- `standard_feature` — the default full Khuym workflow; uses phases or epics as the work demands
+- `high_risk_feature` — defaults to epic map, feasibility proof, and stronger spike discipline
 
 The core contract does not change across modes:
 - `CONTEXT.md` is still the source of truth
 - `validating` still gates execution
-- beads + `bv` + Agent Mail still drive coordination
+- beads + `bv` + Codex subagents + local reservations drive coordination
 
 ## Current Situation
 
 Khuym is not a greenfield framework. It sits downstream of several strong agentic-development systems and distills the parts that fit this repo owner's actual workflow.
 
-- **[Flywheel](https://agent-flywheel.com/complete-guide)** contributes the operational backbone: beads, `bv`, Agent Mail, swarm execution, and the habit of turning plans into live work graphs instead of loose TODO lists.
+- **[Flywheel](https://agent-flywheel.com/complete-guide)** contributes the operational backbone: beads, `bv`, swarm execution, and the habit of turning plans into live work graphs instead of loose TODO lists. Khuym keeps that structure but now uses Codex subagents plus repo-local reservations instead of Agent Mail for the default same-session path.
 - **[GSD](https://github.com/gsd-build/get-shit-done)** contributes the philosophy: discuss first, research second, plan third, and do not execute until the plan has been verified.
 - **[Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin)** contributes parallel review, severity-based findings, and the compound-learning loop that feeds future work.
 - **[Superpowers](https://github.com/obra/superpowers)** contributes skill design patterns, Socratic extraction, and the idea that skills should be strong enough to shape agent behavior consistently.
@@ -66,8 +66,8 @@ The important point is that Khuym does not try to mirror any one upstream framew
 Khuym turns upstream ideas into a custom workflow contract rather than a loose bundle of inspirations:
 
 1. It makes `CONTEXT.md` the source of truth so downstream skills execute against locked decisions rather than reinterpreting intent at every step.
-2. It promotes validation into its own first-class skill, `khuym:validating`, because the GSD lesson is structural: phases should not execute until their contract, stories, and beads pass verification.
-3. It keeps Flywheel's swarm and bead infrastructure, but reshapes it into explicit Khuym skill boundaries: `exploring`, `planning`, `validating`, `swarming`, `executing`, `reviewing`, and `compounding`.
+2. It promotes validation into its own first-class skill, `khuym:validating`, because the GSD lesson is structural: plans should not execute until repo reality, feasibility evidence, current story readiness, and beads pass verification.
+3. It keeps Flywheel's swarm and bead infrastructure, but reshapes it into explicit Khuym skill boundaries and a local-first execution contract: `exploring`, `planning`, `validating`, `swarming`, `executing`, `reviewing`, and `compounding`.
 4. It absorbs review, finish, and learning capture into one continuous workflow so the system does not stop at "code was written"; it closes only after verification and compounding.
 
 ## Workflow First
@@ -75,8 +75,8 @@ Khuym turns upstream ideas into a custom workflow contract rather than a loose b
 Khuym treats software delivery as a staged chain where each skill hands off explicit artifacts to the next stage:
 
 - `khuym:exploring` extracts decisions and locks them in `CONTEXT.md`
-- `khuym:planning` researches the work, writes a phase contract, maps the internal stories, and only then decomposes to beads
-- `khuym:validating` verifies the phase contract, story map, and bead graph before execution begins
+- `khuym:planning` researches the work, chooses the smallest fitting mode, writes only the needed shape artifacts, and prepares only approved current story/work
+- `khuym:validating` reality-checks the chosen shape, proves feasibility with current-system evidence, and verifies current work before execution begins
 - `khuym:swarming` launches and coordinates worker subagents
 - `khuym:executing` runs the worker loop (claim, reserve, implement, verify, close)
 - `khuym:reviewing` performs multi-agent review plus acceptance checks
@@ -104,7 +104,7 @@ flowchart LR
 khuym:exploring → khuym:planning → khuym:validating → khuym:swarming → khuym:executing(×N) → khuym:reviewing → khuym:compounding
 ```
 
-The main differentiator is that execution is intentionally gated: the system does not proceed from planning into implementation until the phase has a clear exit state, coherent stories, and validated beads.
+The main differentiator is that execution is intentionally gated: the system does not proceed from planning into implementation until the current story/work has a clear exit state, concrete feasibility evidence, and validated beads when beads are needed.
 
 ## Session Scout
 
@@ -114,18 +114,27 @@ On onboarded repos, Khuym installs a read-only scout command:
 node .codex/khuym_status.mjs --json
 ```
 
-It summarizes onboarding health plus `.khuym/state.json`, `.khuym/STATE.md`, and `.khuym/HANDOFF.json` so humans and agents can orient quickly before opening deeper artifacts.
+It summarizes onboarding health plus `.khuym/state.json` and `.khuym/HANDOFF.json` so humans and agents can orient quickly before opening deeper artifacts.
+
+For same-session swarm work, the paired runtime surface is:
+
+```bash
+node .codex/khuym_reservations.mjs list --active-only --json
+```
+
+That helper manages `.khuym/reservations.json`, which is Khuym's local file-ownership layer for Codex subagents.
 
 ## Human Gates
 
 - **GATE 1** (after exploring): "Approve decisions/CONTEXT.md?"
-- **GATE 2** (after validating): "Phase verified. Approve execution?"
-- **GATE 3** (after reviewing): "P1 findings. Fix before merge?"
+- **GATE 2** (after planning): "Work shape approved?"
+- **GATE 3** (after validating): "Feasibility validated. Approve execution?"
+- **GATE 4** (after reviewing): "P1 findings. Fix before merge?"
 
 ## Compact Workflow Example
 
 1. `khuym:exploring` captures the decisions and constraints for a feature.
-2. `khuym:planning` and `khuym:validating` turn those decisions into a clear phase contract, a story map, and verified executable beads.
+2. `khuym:planning` and `khuym:validating` turn those decisions into the smallest credible work shape, current-story feasibility proof, and executable beads when beads are needed.
 3. `khuym:swarming` and `khuym:executing` implement the work in parallel with reservations and bead status updates.
 4. `khuym:reviewing` enforces quality gates, then `khuym:compounding` captures reusable learnings.
 
@@ -135,6 +144,7 @@ The README is the top-level overview. The operational contract lives in the repo
 
 - [`AGENTS.md`](AGENTS.md) defines the live Khuym chain, gates, bead workflow, and session rules.
 - [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md) is the canonical architecture and vocabulary contract.
+- [`docs/evaluation/khuym-plugin-eval.md`](docs/evaluation/khuym-plugin-eval.md) defines the reusable plugin evaluation workflow.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) covers skill format, marketplace packaging, and documentation checks.
 
 ## Install In Codex
@@ -159,6 +169,13 @@ Codex plugins are installed from a local marketplace. The standard flow is:
 5. Start a new Codex session and ask for a Khuym workflow task.
 
 The canonical skill layout lives directly under [`plugins/khuym/skills/`](plugins/khuym/skills).
+
+The packaged MCP manifest at [`plugins/khuym/.mcp.json`](plugins/khuym/.mcp.json) mixes hosted services and local-development services:
+
+- hosted/broadly portable: `exa`, `deepwiki`
+- local/runtime-dependent: `gkg`, `morph-mcp`, `MCP_DOCKER`
+
+After install, use `node .codex/khuym_status.mjs --json` on an onboarded repo as the source of truth for local service readiness instead of assuming every advertised MCP server is immediately usable.
 
 If you also want the raw skill mirror for agent tooling outside the Codex plugin runtime, sync it into `~/.agents/skills`:
 
@@ -195,9 +212,9 @@ These are the core delivery stages in the Khuym workflow:
 | Skill | Purpose |
 |-------|---------|
 | `khuym:exploring` | Socratic dialogue → locked decisions in CONTEXT.md |
-| `khuym:planning` | Research + synthesis → approach.md + phase-contract.md + story-map.md + beads |
-| `khuym:validating` | Phase/story/bead verification (8 dims) + spikes + bead polishing — **THE GATE** |
-| `khuym:swarming` | Launch + tend parallel worker agents via Agent Mail |
+| `khuym:planning` | Research + synthesis -> mode gate + approach.md + work shape + epic/phase/current-story artifacts |
+| `khuym:validating` | Reality gate + feasibility matrix + spikes/probes + current-story readiness + bead polishing — **THE GATE** |
+| `khuym:swarming` | Launch + tend parallel Codex subagents with local reservations |
 | `khuym:executing` | Per-agent worker loop: priority → reserve → implement → close |
 | `khuym:reviewing` | Specialist review passes + 3-level verification + UAT |
 | `khuym:compounding` | Capture learnings → history/learnings/ |
@@ -226,10 +243,11 @@ Standalone skills remain available, but they are intentionally secondary to the 
 | `bootstrap-project-context` | Bootstrap a new session by reading repo docs and mapping the codebase |
 | `prompt-leverage` | Upgrade raw prompts into stronger execution-ready prompts |
 | `refresh-project-docs` | Refresh README and docs so they match the current repo state |
+| `xia` | Research feature requests before implementation to avoid reinventing existing patterns |
 
 ## Requirements
 
-- **Core tools:** `br` (beads CLI), `bv` (bead viewer), Agent Mail MCP server
+- **Core tools:** `br` (beads CLI), `bv` (bead viewer), Node.js for the local reservation helper
 - **Optional:** `gkg` (codebase intelligence), CASS/CM (session search)
 
 ## Documentation Checks

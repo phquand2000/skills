@@ -1,8 +1,8 @@
 """
 Book SFT Pipeline - Conceptual Implementation
 
-This demonstrates the core patterns for building book-to-SFT pipelines.
-Adapt to your specific LLM provider and training platform.
+This demonstrates core patterns to build book-to-SFT pipelines.
+Adapt to your specific LLM provider plus training platform.
 """
 
 from dataclasses import dataclass
@@ -42,7 +42,7 @@ def segment_text(text: str, min_words: int = 150, max_words: int = 400) -> List[
     """
     Segment text into training-sized chunks with overlap.
     
-    Key insight: Smaller chunks (150-400) produce more examples and better
+    Key insight: Smaller chunks (150-400) produce more examples plus better
     style transfer than larger chunks (250-650).
     """
     paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
@@ -59,14 +59,14 @@ def segment_text(text: str, min_words: int = 150, max_words: int = 400) -> List[
                 word_count=buffer_words,
                 id=len(chunks)
             ))
-            # Keep last paragraph for overlap
-            buffer = [buffer[-1], para] if buffer else [para]
-            buffer_words = len(buffer[-2].split()) + para_words if len(buffer) > 1 else para_words
+            # Keep last paragraph as overlap.
+            buffer = [buffer[-1], para]
+            buffer_words = len(buffer[0].split()) + para_words
         else:
             buffer.append(para)
             buffer_words += para_words
     
-    if buffer and buffer_words >= min_words // 2:
+    if buffer_words >= min_words // 2:
         chunks.append(Chunk(text='\n\n'.join(buffer), word_count=buffer_words, id=len(chunks)))
     
     return chunks
@@ -93,8 +93,8 @@ def build_examples(chunk: Chunk, instruction: str, author: str, variants: int = 
     """
     Generate multiple training variants per chunk.
     
-    Key insight: Diverse prompts prevent the model from memorizing 
-    specific phrasings and force it to learn underlying style patterns.
+    Key insight: Diverse prompts prevent memorized phrasings while pushing
+    the model toward underlying style patterns.
     """
     examples = []
     for i in range(variants):
@@ -109,7 +109,7 @@ def build_examples(chunk: Chunk, instruction: str, author: str, variants: int = 
 # =============================================================================
 
 INSTRUCTION_PROMPT = """Describe what is happening in this excerpt in 2-3 sentences.
-Focus on: characters present, actions, emotions, and setting.
+Focus on: characters present, actions, emotions, setting.
 Do NOT quote the text directly.
 
 Excerpt:
@@ -118,7 +118,7 @@ Excerpt:
 
 def generate_instruction(chunk: Chunk, llm_call) -> str:
     """
-    Generate a scene description for the chunk.
+    Generate a scene description from the chunk.
     Replace llm_call with your actual LLM API.
     """
     prompt = INSTRUCTION_PROMPT.format(text=chunk.text[:2000])
@@ -138,14 +138,14 @@ def build_tinker_datum(example: dict, tokenizer, renderer):
     """
     Convert training example to Tinker Datum format.
     
-    Key insight: Weights of 0 for prompt, 1 for completion.
+    Key insight: Weights of 0 on prompts, 1 on completions.
     This teaches the model to generate completions, not repeat prompts.
     """
     messages = example["messages"]
     model_input, weights = renderer.build_supervised_example(messages)
     
     input_tokens = model_input.to_ints()
-    target_tokens = input_tokens[1:]  # Shift for next-token prediction
+    target_tokens = input_tokens[1:]  # Shift to next-token prediction
     weights = weights[1:]             # Align weights
     
     return {
@@ -164,11 +164,11 @@ def validate_style_transfer(output: str, training_data_path: str) -> dict:
     """
     Validate that the model learned style, not just memorized content.
     """
-    # Check for exact phrase matches in training data
+    # Check exact phrase matches in training data.
     with open(training_data_path) as f:
         training_text = f.read()
     
-    # Split output into phrases and check for matches
+    # Split output into phrases, then check matches.
     phrases = [output[i:i+50] for i in range(0, len(output)-50, 25)]
     exact_matches = sum(1 for p in phrases if p in training_text)
     

@@ -39,6 +39,7 @@ const MANAGED_SUPPORT_FILES = {
   "khuym_status.mjs": path.join(HOOK_TEMPLATES_DIR, "khuym_status.mjs"),
   "khuym_state.mjs": path.join(USING_KHUYM_SCRIPTS_DIR, "khuym_state.mjs"),
   "khuym_dependencies.mjs": path.join(USING_KHUYM_SCRIPTS_DIR, "khuym_dependencies.mjs"),
+  "khuym_reservations.mjs": path.join(USING_KHUYM_SCRIPTS_DIR, "khuym_reservations.mjs"),
 };
 
 function readDependencyHealth(repoRoot) {
@@ -327,7 +328,7 @@ function renderCompactPromptBlock() {
     "STOP. Before doing anything else:",
     "1. Read AGENTS.md completely.",
     "2. If present, run node .codex/khuym_status.mjs --json.",
-    "3. If present, read .khuym/HANDOFF.json, .khuym/state.json, and .khuym/STATE.md.",
+    "3. If present, read .khuym/HANDOFF.json and .khuym/state.json.",
     "4. Re-open the active feature CONTEXT.md before more planning or edits.",
     "5. Re-open the current bead or task before running more implementation commands.",
     "6. Check the current worktree state with git status before resuming.",
@@ -589,6 +590,10 @@ function needsStateUpdate(repoRoot) {
   return sourceText !== normalizedText;
 }
 
+function hasLegacyStateMarkdown(repoRoot) {
+  return fs.existsSync(path.join(repoRoot, ".khuym", "STATE.md"));
+}
+
 function buildRuntimeBlockedPayload(repoRoot, action) {
   const runtime = getNodeRuntimeStatus();
   return {
@@ -690,6 +695,10 @@ export function checkRepo(repoRoot) {
     actions.push("write_.khuym/state.json");
   }
 
+  if (hasLegacyStateMarkdown(repoRoot)) {
+    actions.push("remove_.khuym/STATE.md");
+  }
+
   if (onboarding.plugin_version !== pluginVersion) {
     actions.push("write_.khuym/onboarding.json");
   }
@@ -729,6 +738,7 @@ export function applyRepo(repoRoot, allowCompactPromptReplace) {
   const hooksPath = path.join(repoRoot, ".codex", "hooks.json");
   const onboardingPath = path.join(repoRoot, ".khuym", "onboarding.json");
   const statePath = path.join(repoRoot, ".khuym", "state.json");
+  const legacyStateMarkdownPath = path.join(repoRoot, ".khuym", "STATE.md");
 
   ensureParent(agentsPath);
   ensureParent(configPath);
@@ -751,6 +761,9 @@ export function applyRepo(repoRoot, allowCompactPromptReplace) {
     ? normalizeKhuymState(readKhuymState(repoRoot))
     : buildDefaultState();
   writeKhuymState(repoRoot, statePayload);
+  if (fs.existsSync(legacyStateMarkdownPath)) {
+    fs.rmSync(legacyStateMarkdownPath, { force: true });
+  }
 
   const onboardingNotes = [];
   let status = "complete";

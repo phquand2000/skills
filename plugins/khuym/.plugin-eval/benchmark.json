@@ -1,0 +1,164 @@
+{
+  "kind": "plugin-eval-benchmark",
+  "schemaVersion": 2,
+  "version": 2,
+  "targetKind": "plugin",
+  "targetName": "khuym",
+  "runner": {
+    "type": "codex-cli",
+    "model": "gpt-5.4",
+    "sandbox": "workspace-write",
+    "approvalPolicy": "never",
+    "extraArgs": []
+  },
+  "workspace": {
+    "sourcePath": ".",
+    "setupMode": "copy",
+    "preserve": "on-failure"
+  },
+  "targetProvisioning": {
+    "mode": "workspace-plugin-marketplace"
+  },
+  "verifiers": {
+    "commands": [
+      "node .codex/khuym_status.mjs --json",
+      "bash scripts/check-markdown-links.sh"
+    ]
+  },
+  "notes": [
+    "This is the focused Khuym plugin pilot suite, not full-chain coverage.",
+    "plugin-eval benchmark runs real codex exec sessions in copied workspaces.",
+    "Treat plugin-eval static score as structural evidence; workflow correctness comes from scenario outcomes.",
+    "gkg readiness is intentionally dependency-sensitive and must be reported clearly when unavailable."
+  ],
+  "scenarios": [
+    {
+      "id": "bootstrap-routing",
+      "title": "Bootstrap routing",
+      "purpose": "Check whether the plugin routes a Khuym repo status request through the bootstrap/scout path without changing files.",
+      "userInput": "Use Khuym if it helps. Tell me the current Khuym onboarding and workflow state for this repository. Do not edit files.",
+      "expectedSkillRouting": [
+        "khuym:using-khuym"
+      ],
+      "expectedFilesOrCommands": [
+        "AGENTS.md",
+        "node .codex/khuym_status.mjs --json",
+        ".khuym/state.json",
+        ".khuym/HANDOFF.json",
+        "history/learnings/critical-patterns.md"
+      ],
+      "mustNot": [
+        "Do not mutate tracked files.",
+        "Do not auto-resume a saved handoff without user confirmation.",
+        "Do not claim gkg is ready unless the scout says server_reachable and project_indexed are true."
+      ],
+      "successChecklist": [
+        "The run reads AGENTS.md before substantive Khuym work.",
+        "The run executes node .codex/khuym_status.mjs --json.",
+        "The run surfaces onboarding, state, handoff, dependency health, and gkg readiness.",
+        "The run makes no workspace edits."
+      ]
+    },
+    {
+      "id": "xia-research-routing",
+      "title": "Xia research routing",
+      "purpose": "Check whether unfamiliar feature discovery routes through research-first Khuym behavior instead of jumping into implementation.",
+      "userInput": "Use Khuym to research how we should add a new capability that depends on current framework behavior. First identify this repository's current stack and existing workflow surfaces, then decide what external docs or MCP research would actually be useful. Do not implement.",
+      "expectedSkillRouting": [
+        "khuym:using-khuym",
+        "khuym:xia"
+      ],
+      "expectedFilesOrCommands": [
+        "AGENTS.md",
+        "node .codex/khuym_status.mjs --json",
+        "plugins/khuym/skills/xia/SKILL.md",
+        "rg or file inspection for current stack"
+      ],
+      "mustNot": [
+        "Do not start coding during research.",
+        "Do not use external docs before checking repo reality.",
+        "Do not force gkg when the scout reports it is not reachable or not indexed."
+      ],
+      "successChecklist": [
+        "The run chooses the research-first route.",
+        "The run inspects local stack and workflow context before external research.",
+        "The run names which MCP/documentation paths are relevant and which are degraded or unnecessary.",
+        "The run ends with research findings or a research plan, not implementation."
+      ]
+    },
+    {
+      "id": "planning-gate",
+      "title": "Planning gate",
+      "purpose": "Check whether a feature-planning request stays behind Khuym's validation gate and uses locked decisions as the source of truth.",
+      "userInput": "Use Khuym to turn this feature request into an implementation plan: add a reusable evaluator for Khuym plugin workflow quality. Stay in planning mode and do not execute the implementation.",
+      "expectedSkillRouting": [
+        "khuym:using-khuym",
+        "khuym:planning"
+      ],
+      "expectedFilesOrCommands": [
+        "AGENTS.md",
+        "node .codex/khuym_status.mjs --json",
+        "history/learnings/critical-patterns.md",
+        "history/*/CONTEXT.md when an active feature context exists"
+      ],
+      "mustNot": [
+        "Do not edit files.",
+        "Do not create or close beads as if execution were approved.",
+        "Do not skip the validating gate before execution."
+      ],
+      "successChecklist": [
+        "The run frames output as a plan/spec rather than implementation.",
+        "The run treats CONTEXT.md and critical patterns as decision sources when available.",
+        "The run explicitly preserves validating as the gate before execution.",
+        "The run leaves implementer-facing acceptance criteria."
+      ]
+    },
+    {
+      "id": "operator-path-audit",
+      "title": "Operator path audit",
+      "purpose": "Check whether dependency coverage is compared against documented operator paths instead of trusted blindly.",
+      "userInput": "Use Khuym to audit whether one dependency-covered skill is truly safe for operators. Compare its metadata dependencies with the commands and services the skill tells agents to use. Report mismatches and do not fix them.",
+      "expectedSkillRouting": [
+        "khuym:using-khuym",
+        "khuym:reviewing"
+      ],
+      "expectedFilesOrCommands": [
+        "node .codex/khuym_status.mjs --json",
+        "history/learnings/critical-patterns.md",
+        "plugins/khuym/skills/*/SKILL.md",
+        "rg for documented commands such as gh, gkg, br, bv, cass, cm"
+      ],
+      "mustNot": [
+        "Do not equate declared dependency coverage with operator-path correctness.",
+        "Do not claim a skill is safe if it documents an undeclared normal-path command.",
+        "Do not edit the audited skill."
+      ],
+      "successChecklist": [
+        "The run cites the dependency report and the skill's documented operator path.",
+        "The run checks for mismatches like documented commands missing from metadata.dependencies.",
+        "The run explicitly applies the dependency coverage critical pattern.",
+        "The run reports findings separately from proposed fixes."
+      ]
+    },
+    {
+      "id": "boundary-case",
+      "title": "Boundary case",
+      "purpose": "Check whether the plugin avoids forcing Khuym on a weak-fit request.",
+      "userInput": "Please alphabetize this short list and return only the sorted list: beta, alpha, gamma.",
+      "expectedSkillRouting": [
+        "no Khuym skill required"
+      ],
+      "expectedFilesOrCommands": [],
+      "mustNot": [
+        "Do not load the full Khuym chain for a trivial one-shot transformation.",
+        "Do not run repo status commands.",
+        "Do not edit files."
+      ],
+      "successChecklist": [
+        "The run recognizes the request is a weak match for Khuym.",
+        "The run answers directly with the sorted list.",
+        "The run does not introduce workflow ceremony."
+      ]
+    }
+  ]
+}

@@ -22,7 +22,17 @@ docs/architecture/*
 !docs/examples/
 docs/examples/*
 !docs/examples/golden-path.md
+!docs/evaluation/
+docs/evaluation/*
+!docs/evaluation/khuym-plugin-eval.md
+!docs/evaluation/khuym-swarming-hardening.md
 !docs/legal/
 !docs/legal/privacy.md
 !docs/legal/terms.md
 .spikes
+plugins/khuym/.plugin-eval/*
+!plugins/khuym/.plugin-eval/benchmark.json
+
+# Plugin Eval run outputs are local measurement artifacts. Keep the plugin-level
+# benchmark config above, but do not package per-skill benchmark state.
+plugins/khuym/skills/**/.plugin-eval/

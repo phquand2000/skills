@@ -8,13 +8,84 @@ from textwrap import dedent
 
 
 TASK_KEYWORDS = {
-    "coding": ["code", "bug", "repo", "refactor", "test", "implement", "fix", "function", "api"],
-    "research": ["research", "compare", "find", "latest", "sources", "analyze market", "look up"],
+    "coding": [
+        "code",
+        "bug",
+        "repo",
+        "refactor",
+        "test",
+        "implement",
+        "fix",
+        "function",
+        "api",
+    ],
+    "research": [
+        "research",
+        "compare",
+        "find",
+        "latest",
+        "sources",
+        "analyze market",
+        "look up",
+    ],
     "writing": ["write", "rewrite", "draft", "email", "memo", "blog", "copy", "tone"],
     "review": ["review", "audit", "critique", "inspect", "evaluate", "assess"],
     "planning": ["plan", "roadmap", "strategy", "framework", "outline"],
     "analysis": ["analyze", "explain", "break down", "diagnose", "root cause"],
 }
+
+INTENSITY_MARKERS = [
+    "careful",
+    "deep",
+    "thorough",
+    "high stakes",
+    "production",
+    "critical",
+]
+
+TOOL_RULES = {
+    "coding": (
+        "Inspect the relevant files plus dependencies first. Validate the final "
+        "change with the narrowest useful checks before broadening scope."
+    ),
+    "research": (
+        "Retrieve evidence from reliable sources before concluding. Do not guess "
+        "facts that can be checked."
+    ),
+    "review": (
+        "Read enough surrounding context to understand intent before critiquing. "
+        "Distinguish confirmed issues from plausible risks."
+    ),
+}
+
+DEFAULT_TOOL_RULE = (
+    "Use tools only when they materially improve correctness, completeness, "
+    "or speed."
+)
+
+OUTPUT_CONTRACTS = {
+    "coding": (
+        "Return the result in a practical execution format: concise summary, "
+        "concrete changes, validation notes, plus remaining risks."
+    ),
+    "research": (
+        "Return a structured synthesis with key findings, supporting evidence, "
+        "uncertainty where relevant, plus a concise bottom line."
+    ),
+    "writing": (
+        "Return polished final copy in the requested tone. When useful, "
+        "include a short rationale for major editorial choices."
+    ),
+    "review": (
+        "Return findings grouped by severity, explain why each matters, "
+        "then suggest the smallest credible next step."
+    ),
+}
+
+DEFAULT_OUTPUT_CONTRACT = (
+    "Return a clear, well-structured response matched to the task, with no "
+    "unnecessary verbosity."
+)
 
 
 def detect_task(prompt: str) -> str:
@@ -29,7 +100,7 @@ def detect_task(prompt: str) -> str:
 
 def infer_intensity(prompt: str, task: str) -> str:
     lowered = prompt.lower()
-    if any(token in lowered for token in ["careful", "deep", "thorough", "high stakes", "production", "critical"]):
+    if any(token in lowered for token in INTENSITY_MARKERS):
         return "Deep"
     if task in {"coding", "research", "review"}:
         return "Standard"
@@ -37,30 +108,16 @@ def infer_intensity(prompt: str, task: str) -> str:
 
 
 def build_tool_rules(task: str) -> str:
-    if task == "coding":
-        return "Inspect the relevant files and dependencies first. Validate the final change with the narrowest useful checks before broadening scope."
-    if task == "research":
-        return "Retrieve evidence from reliable sources before concluding. Do not guess facts that can be checked."
-    if task == "review":
-        return "Read enough surrounding context to understand intent before critiquing. Distinguish confirmed issues from plausible risks."
-    return "Use tools or extra context only when they materially improve correctness or completeness."
+    return TOOL_RULES.get(task, DEFAULT_TOOL_RULE)
 
 
 def build_output_contract(task: str) -> str:
-    if task == "coding":
-        return "Return the result in a practical execution format: concise summary, concrete changes or code, validation notes, and any remaining risks."
-    if task == "research":
-        return "Return a structured synthesis with key findings, supporting evidence, uncertainty where relevant, and a concise bottom line."
-    if task == "writing":
-        return "Return polished final copy in the requested tone and format. If useful, include a short rationale for major editorial choices."
-    if task == "review":
-        return "Return findings grouped by severity or importance, explain why each matters, and suggest the smallest credible next step."
-    return "Return a clear, well-structured response matched to the task, with no unnecessary verbosity."
+    return OUTPUT_CONTRACTS.get(task, DEFAULT_OUTPUT_CONTRACT)
 
 
 def upgrade_prompt(raw_prompt: str, task: str | None) -> str:
     normalized = re.sub(r"\s+", " ", raw_prompt).strip()
-    detected_task = task or detect_task(normalized)
+    detected_task = task if task is not None else detect_task(normalized)
     intensity = infer_intensity(normalized, detected_task)
     tool_rules = build_tool_rules(detected_task)
     output_contract = build_output_contract(detected_task)
@@ -69,16 +126,17 @@ def upgrade_prompt(raw_prompt: str, task: str | None) -> str:
         f"""
         Objective:
         - Complete this task: {normalized}
-        - Optimize for a correct, useful result rather than a merely plausible one.
+        - Optimize toward a correct, useful result instead of a merely plausible one.
 
         Context:
-        - Preserve the user's original intent and constraints.
-        - Surface any key assumptions if required information is missing.
+        - Preserve the user's original intent plus constraints.
+        - Surface key assumptions when required information is missing.
 
         Work Style:
         - Task type: {detected_task}
         - Effort level: {intensity}
-        - Understand the problem broadly enough to avoid narrow mistakes, then go deep where the risk or complexity is highest.
+        - Understand the problem broadly enough to avoid narrow mistakes.
+        - Go deep where risk or complexity is highest.
         - Use first-principles reasoning before proposing changes.
         - For non-trivial work, review the result once with fresh eyes before finalizing.
 
@@ -89,17 +147,20 @@ def upgrade_prompt(raw_prompt: str, task: str | None) -> str:
         - {output_contract}
 
         Verification:
-        - Check correctness, completeness, and edge cases.
-        - Improve obvious weaknesses if a better approach is available within scope.
+        - Check correctness, completeness, edge cases.
+        - Improve obvious weaknesses when a better approach is available within scope.
 
         Done Criteria:
-        - Stop only when the response satisfies the task, matches the requested format, and passes the verification step.
+        - Stop only when the response satisfies the task.
+        - Match the requested format plus pass the verification step.
         """
     ).strip()
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Upgrade a raw prompt into a framework-backed execution prompt.")
+    parser = argparse.ArgumentParser(
+        description="Upgrade a raw prompt into a framework-backed execution prompt."
+    )
     parser.add_argument("prompt", help="Raw prompt text to upgrade.")
     parser.add_argument("--task", choices=sorted(TASK_KEYWORDS.keys()), help="Optional explicit task type.")
     return parser.parse_args()

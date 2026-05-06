@@ -1,297 +1,238 @@
 ---
 name: debugging
-description: Systematic debugging for blocked workers, test failures, build errors, runtime crashes, and integration issues. Invoked standalone ("debug this error") or by other skills (reviewing spawns debugger on UAT failure, executing invokes it on blocker). Reads history/learnings/critical-patterns.md to avoid re-solving known issues. Writes debug notes that compounding can later capture.
+description: Use when blocked workers, test failures, build errors, runtime crashes, or integration issues need systematic root-cause debugging. Reads history/learnings/critical-patterns.md to avoid re-solving known issues. Writes debug notes that compounding can later capture.
 metadata:
   ecosystem: khuym
   dependencies:
-    - id: beads-cli
+    beads-cli:
       kind: command
       command: br
       missing_effect: degraded
       reason: Debugging checks bead context and creates fix beads with br when needed.
-    - id: beads-viewer
+    beads-viewer:
       kind: command
       command: bv
       missing_effect: degraded
       reason: Debugging inspects blocker and cycle state with bv during stuck-worker triage.
-    - id: agent-mail
-      kind: mcp_server
-      server_names: [mcp_agent_mail]
-      config_sources: [repo_codex_config, global_codex_config]
-      missing_effect: degraded
-      reason: Debugging checks epic mail threads and reports blockers or fixes through Agent Mail.
 ---
 
 # Debugging
 
 If `.khuym/onboarding.json` is missing or stale for the current repo, stop and invoke `khuym:using-khuym` before continuing.
 
-Resolve blockers and failures systematically. Do not guess — triage first, then reproduce, then diagnose, then fix.
+Resolve blockers and failures systematically. Do not guess. Triage first, reproduce second, diagnose third, fix fourth.
 
-## When to Use This Skill
+## When To Use This Skill
 
-- A build fails (compilation, type error, missing dependency)
-- A test fails (assertion mismatch, flaky test, timeout)
-- A runtime crash or exception occurs
-- An integration breaks (API mismatch, env config, auth)
-- A worker is stuck (circular dependency, conflicting changes, unresolvable blocker)
-- Reviewing or executing hands off with a failure that needs root cause analysis
+- a build fails
+- a test fails
+- a runtime crash or exception occurs
+- an integration breaks
+- a worker is blocked by dependencies or reservations
+- reviewing or executing hands off with a failure that needs root-cause analysis
 
 ---
 
-## Step 1: Triage — Classify the Issue
+## Step 1: Triage
 
-Classify before investigating. Misclassifying wastes time.
+Classify the issue before you investigate it.
 
 | Type | Signals |
 |---|---|
-| **Build failure** | Compilation error, type error, missing module, bundler failure |
-| **Test failure** | Assertion mismatch, snapshot diff, timeout, flaky intermittent pass |
-| **Runtime error** | Crash, uncaught exception, segfault, undefined behavior |
-| **Integration failure** | HTTP 4xx/5xx, env variable missing, API schema mismatch, auth error |
-| **Blocker** | Stuck agent, circular bead dependency, conflicting file reservations |
+| Build failure | compiler error, type error, missing module, bundler failure |
+| Test failure | assertion mismatch, timeout, snapshot diff, flake |
+| Runtime error | crash, uncaught exception, undefined behavior |
+| Integration failure | HTTP 4xx/5xx, auth failure, env mismatch, schema mismatch |
+| Worker blocker | circular bead dependency, conflicting reservations, no safe execution path |
 
-**Output of triage:** A one-line classification: `[TYPE] in [component]: [symptom]`
+Output a one-line classification:
 
-Example: `Build failure in packages/sdk: TS2345 type mismatch in auth.ts`
-
----
-
-## Step 2: Reproduce — Isolate the Failure
-
-**Check known patterns first** — before any investigation:
-
-```bash
-cat history/learnings/critical-patterns.md 2>/dev/null | grep -i "<keyword from classification>"
-```
-
-If a known pattern matches → jump directly to Step 4 (Fix), using the documented resolution.
-
-**If not a known pattern, reproduce it:**
-
-1. Run the exact command that failed — do not paraphrase it:
-   ```bash
-   # Whatever CI/worker ran — run it verbatim
-   npm run build 2>&1 | tee /tmp/debug-output.txt
-   # or: pytest tests/specific_test.py -v 2>&1 | tee /tmp/debug-output.txt
-   ```
-
-2. Capture error output verbatim. Do not summarize. The exact line numbers and messages matter.
-
-3. Identify the minimal reproduction case:
-   - Can you trigger the failure with one file change? One command?
-   - Does it fail in isolation or only in combination with other changes?
-   - Is it environment-specific (CI only, one machine only)?
-
-4. Confirm reproducibility:
-   - Run twice. If intermittent → classify as **flaky test**, not a deterministic failure.
-   - Flaky tests require a different approach: check for shared state, race conditions, or test ordering.
+`[TYPE] in [component]: [symptom]`
 
 ---
 
-## Step 3: Diagnose — Root Cause Analysis
+## Step 2: Reproduce
 
-Work through these checks in order. Stop when you find the cause.
+Check `history/learnings/critical-patterns.md` first. If a matching pattern already exists, start from that fix path.
 
-### 3a. Read the relevant source files
+If not, rerun the exact failing command and capture the exact output.
 
-```bash
-# Find the file mentioned in the error
-grep -rn "<error symbol or function>" src/ --include="*.ts" -l
-# Then read the file
-```
-
-Do not read the entire codebase. Read exactly the files implicated by the error output.
-
-### 3b. Check git blame for recent changes
+Examples:
 
 ```bash
-git log --oneline -20          # What changed recently?
-git blame <file> -L <line>,<line>  # Who changed the failing line?
-git diff HEAD~3 -- <file>      # What did it look like before?
+npm run build 2>&1 | tee /tmp/debug-output.txt
+pytest tests/specific_test.py -v 2>&1 | tee /tmp/debug-output.txt
 ```
 
-If a recent commit introduced the failure → the fix is likely reverting or adjusting that change.
+Run it twice. If it is intermittent, treat it as a flaky failure rather than a deterministic one.
 
-### 3c. Check bead context
+---
+
+## Step 3: Diagnose
+
+Work through these checks in order.
+
+### 3a. Read the relevant files
+
+Use the failing output to identify the smallest relevant slice. Do not read the entire repo.
+
+### 3b. Check recent changes
 
 ```bash
-br show <bead-id>   # What was this bead supposed to do?
+git log --oneline -20
+git blame <file> -L <line>,<line>
+git diff HEAD~3 -- <file>
 ```
 
-Verify: does the failure indicate the bead was implemented against the wrong spec, or that it was implemented correctly but the spec was wrong?
-
-### 3d. Check CONTEXT.md for decision violations
+### 3c. Check bead intent
 
 ```bash
-cat history/<feature>/CONTEXT.md
+br show <bead-id>
 ```
 
-Ask: was a locked decision (D1, D2...) violated by the implementation? Decision violations are a frequent root cause — the code does something "reasonable" that was explicitly excluded.
+Ask whether the code drifted from the bead, or the bead itself is wrong.
 
-### 3e. Check Agent Mail for related blockers
+### 3d. Check locked decisions
+
+Read the relevant `CONTEXT.md` entries and confirm the implementation did not violate a locked decision.
+
+### 3e. Check local reservation state
 
 ```bash
-fetch_topic(project_key="<project-root-path>", topic_name="<EPIC_TOPIC>")
-fetch_inbox(project_key="<project-root-path>", agent_name="<agent-name>", topic="<EPIC_TOPIC>")
+node .codex/khuym_reservations.mjs list --active-only --json
 ```
 
-Another worker may have already reported the same issue or a related conflict. Avoid duplicate debugging.
+Look for:
 
-### 3f. Narrow to root cause
+- overlapping reservations
+- leaked reservations from a finished worker
+- a worker that still holds files after a blocker or timeout
 
-After checks 3a–3e, write a one-sentence root cause:
+Also inspect `.khuym/state.json` for the active worker list.
+
+### 3f. Check recent worker results in the parent thread
+
+If this debugging pass was spawned from swarming, use the parent-thread context and the saved worker status in `.khuym/state.json` as the coordination surface. Do not assume an external inbox exists.
+
+### 3g. Write the root cause sentence
+
+Do not proceed until you can write:
 
 > Root cause: `<file>:<line>` — `<what is wrong and why>`
 
-If you cannot write this sentence, you do not have the root cause yet. Do not proceed to Fix.
+If you cannot write that sentence, you do not have the root cause yet.
 
 ---
 
-## Step 4: Fix — Apply and Verify
+## Step 4: Fix And Verify
 
-### Fix size determines approach
+### Small fix
 
-**Small fix** (1–3 files, obvious change, low risk):
-- Implement directly
-- Commit: `fix(<bead-id>): <what was wrong and what was changed>`
-- Run verification immediately:
-  ```bash
-  npm run build && npm test   # or language equivalent
-  ```
+If the fix is obvious and low risk:
 
-**Substantial fix** (cross-cutting change, logic redesign, multiple files):
-- Create a fix bead before implementing:
-  ```bash
-  br create "Fix: <root cause summary>" -t task --blocks <original-bead-id>
-  ```
-- Implement in the fix bead's scope
-- Run verification: the fix bead's acceptance criteria must pass
+- implement directly
+- run the exact failing command again
+- run the next-wider verification that protects against regressions
 
-**Decision violation** (CONTEXT.md decision ignored):
-- Do not silently fix — the decision may need to be revisited
-- Report via Agent Mail before implementing:
-  ```
-  send_message(
-    project_key: "<project-root-path>",
-    sender_name: "<agent-name>",
-    to: ["<COORDINATOR_AGENT_NAME>"],
-    thread_id: "<epic-thread-id>",
-    topic: "<EPIC_TOPIC>",
-    subject: "Decision violation found: <decision-id>",
-    body_md: "Bead <id> violated decision <D#>: <what was done vs what was decided>. Proposed fix: <approach>."
-  )
-  ```
-- Wait for response or implement the conservative fix (honor the locked decision)
+### Larger fix
 
-### Verify the fix
-
-Run the exact command that originally failed. It must pass cleanly — not "mostly pass":
+If the fix is cross-cutting or changes the intended behavior:
 
 ```bash
-# Rerun original failing command
-<original-failing-command>
-
-# Also run broader test suite to check for regressions
-npm test   # or equivalent
+br create "Fix: <root cause summary>" -t task --blocks <original-bead-id>
 ```
 
-If verification fails → do not report success. Return to Step 3 with new information.
+Then implement against that new bead.
 
-### Report the fix via Agent Mail
+### Decision violation
 
+If a locked decision was violated:
+
+- do not silently "fix" it by changing behavior on your own
+- return or report a blocker summary to the parent thread or user
+- propose the conservative fix that honors `CONTEXT.md`
+
+### Reservation-related fixes
+
+If the failure is caused by leaked or stale reservations:
+
+1. inspect the holder
+2. release the reservation only if the holder is clearly done or abandoned
+3. note the release explicitly in your final report
+
+Use:
+
+```bash
+node .codex/khuym_reservations.mjs release --agent "<codex-name>" --bead "<bead-id>" --json
+node .codex/khuym_reservations.mjs sweep --json
 ```
-send_message(
-  project_key: "<project-root-path>",
-  sender_name: "<agent-name>",
-  to: ["<COORDINATOR_AGENT_NAME>"],
-  thread_id: "<epic-thread-id>",
-  topic: "<EPIC_TOPIC>",
-  subject: "Fix applied: <classification from Step 1>",
-  body_md: "Root cause: <sentence from 3f>. Fix: <what was changed>. Verification: passed."
-)
-```
+
+### Verify
+
+The original failing command must pass cleanly. If it still fails, return to diagnosis.
 
 ---
 
-## Step 5: Learn — Capture the Pattern
+## Step 5: Report
 
-### If this is a new failure pattern
+If you are inside a swarm, return the debugging result to the parent thread using a clear status heading:
 
-Write a debug note for compounding to capture:
+- `[DONE]` if the fix is complete and verified
+- `[BLOCKED]` if the problem needs a decision, another worker release, or a broader redesign
 
-```bash
-cat >> /tmp/debug-notes.md << 'EOF'
-## Debug Note: <date> — <classification>
+At minimum include:
 
-**Root cause**: <root cause sentence>
-**Trigger**: <what causes this>
-**Fix**: <what resolves it>
-**Signal**: <how to recognize this pattern in future>
-EOF
-```
+- root cause sentence
+- fix summary
+- verification result
+- reservation impact, if any
+- next action needed
 
-Tell the user: "New failure pattern found. Run khuym:compounding skill to promote this to history/learnings/."
+If you are working directly for the user, give the same information in the final response.
 
-### If this matches a known pattern from critical-patterns.md
+---
 
-Verify the existing advice still works:
-- Did following the documented resolution solve it?
-- If yes: no action needed
-- If the documented resolution failed or is outdated: update the note with a flag
+## Step 6: Learn
 
-```bash
-echo "⚠ Pattern '<name>' resolution no longer accurate as of <date> — <what changed>" \
-  >> history/learnings/critical-patterns.md
-```
+If this exposed a new reusable failure pattern, write a debug note for compounding so the lesson can be promoted later.
+
+If the failure matched an existing pattern from `critical-patterns.md`, verify whether that guidance still works. If not, flag it for compounding.
 
 ---
 
 ## Blocker-Specific Protocol
 
-When a worker is stuck (cannot make progress, not a code error):
+When a worker is stuck rather than code-broken:
 
-1. Check bead dependencies: `bv --robot-insights 2>/dev/null | jq '.Cycles'`
-2. Check file reservations via Agent Mail for conflicts
-3. Determine: is this **waiting for another worker** or **genuinely blocked**?
+1. inspect cycles and dependencies:
+   ```bash
+   bv --robot-insights 2>/dev/null | jq '.Cycles'
+   ```
+2. inspect local reservations:
+   ```bash
+   node .codex/khuym_reservations.mjs list --active-only --json
+   ```
+3. determine whether the worker is:
+   - waiting on another bead
+   - blocked by an overlapping reservation
+   - blocked by a real product decision
 
-**Waiting for another worker** → report to orchestrator and yield:
-```
-send_message(
-  project_key: "<project-root-path>",
-  sender_name: "<agent-name>",
-  to: ["<COORDINATOR_AGENT_NAME>"],
-  thread_id: "<epic-thread-id>",
-  topic: "<EPIC_TOPIC>",
-  subject: "Blocked: waiting on <bead-id>",
-  body_md: "<bead-id> cannot proceed until <dependency> completes. Pausing."
-)
-```
+If it is only waiting, return `[BLOCKED]` with the dependency or reservation holder and stop.
 
-**Genuinely blocked** (circular dep, impossible constraint, conflicting decisions):
-```
-send_message(
-  project_key: "<project-root-path>",
-  sender_name: "<agent-name>",
-  to: ["<COORDINATOR_AGENT_NAME>"],
-  thread_id: "<epic-thread-id>",
-  topic: "<EPIC_TOPIC>",
-  subject: "Hard blocker: <description>",
-  body_md: "Cannot resolve: <what is impossible and why>. Options: <A> or <B>. Needs human decision."
-)
-```
+If it is a real dead-end, return `[BLOCKED]` with concrete options for the parent or user.
 
-Do not spin. One report, then pause and let the orchestrator escalate.
+Do not spin.
 
 ---
 
 ## Red Flags
 
-- **Fixing symptoms, not root cause** — If the same error recurs after the fix, root cause was not found. Return to Step 3.
-- **Skipping reproduction** — Diagnosing from the error message alone leads to wrong fixes. Always reproduce first.
-- **Not checking critical-patterns.md** — Teams report that 30–40% of recurring failures are already documented. Check before investigating.
-- **Committing a fix without running verification** — The fix must be verified with the exact failing command, not a different test.
-- **Decision violation silently patched** — Violating a CONTEXT.md decision to make a test pass propagates the violation downstream. Always report and align first.
+- fixing symptoms instead of root cause
+- skipping reproduction
+- ignoring `critical-patterns.md`
+- patching around a locked decision violation
+- reporting success without rerunning the original failing command
+- forgetting to account for local reservations during swarm debugging
 
 ---
 
@@ -299,10 +240,9 @@ Do not spin. One report, then pause and let the orchestrator escalate.
 
 | Situation | First action |
 |---|---|
-| Build fails | `git log --oneline -10` — check recent changes |
-| Test fails | Run test verbatim, capture exact assertion output |
-| Flaky test | Run 5× — if intermittent, check shared state/ordering |
-| Runtime crash | Read stack trace top-to-bottom, find first line in your code |
-| Integration error | Check env vars, then API response body (not just status code) |
-| Worker stuck | Check bead deps with `bv`, then Agent Mail for conflicts |
-| Recurring issue | Check `history/learnings/critical-patterns.md` first |
+| Build fails | rerun the exact build command |
+| Test fails | rerun the exact test and capture assertion output |
+| Runtime crash | read the stack trace and find the first line in your code |
+| Integration error | check env/config, then the real response body |
+| Worker stuck | inspect `bv` plus local reservations |
+| Recurring issue | check `history/learnings/critical-patterns.md` first |
