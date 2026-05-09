@@ -431,6 +431,91 @@ function buildManagedHookCommand(fileName) {
   return `node .codex/hooks/${fileName}`;
 }
 
+function renderClaudeCodeHookEntries() {
+  return {
+    SessionStart: [
+      {
+        hooks: [
+          {
+            type: "command",
+            command: `node "\${CLAUDE_PROJECT_DIR}/.codex/hooks/khuym_session_start.mjs"`,
+            timeout: 5000,
+          },
+        ],
+      },
+    ],
+    PreToolUse: [
+      {
+        matcher: "Bash",
+        hooks: [
+          {
+            type: "command",
+            command: `node "\${CLAUDE_PROJECT_DIR}/.codex/hooks/khuym_pre_tool_use.mjs"`,
+            timeout: 5000,
+          },
+        ],
+      },
+    ],
+    Stop: [
+      {
+        hooks: [
+          {
+            type: "command",
+            command: `node "\${CLAUDE_PROJECT_DIR}/.codex/hooks/khuym_stop.mjs"`,
+            timeout: 5000,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function isKhuymClaudeHookEntry(entry) {
+  for (const hook of entry?.hooks || []) {
+    const command = hook?.command || "";
+    if (command.includes(".codex/hooks/khuym_")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function mergeClaudeSettings(settingsPath) {
+  const existingText = readTextIfExists(settingsPath);
+  const existing = existingText ? JSON.parse(existingText || "{}") : {};
+  const hooks = existing.hooks && typeof existing.hooks === "object" ? existing.hooks : {};
+  const mergedHooks = { ...hooks };
+  const changes = [];
+
+  for (const [eventName, entries] of Object.entries(renderClaudeCodeHookEntries())) {
+    const currentEntries = Array.isArray(mergedHooks[eventName]) ? mergedHooks[eventName] : [];
+    const filtered = currentEntries.filter((entry) => !isKhuymClaudeHookEntry(entry));
+    const nextEntries = [...filtered, ...entries];
+    if (JSON.stringify(currentEntries) !== JSON.stringify(nextEntries)) {
+      changes.push(`claude_upsert_${eventName}`);
+    }
+    mergedHooks[eventName] = nextEntries;
+  }
+
+  return {
+    text: `${JSON.stringify({ ...existing, hooks: mergedHooks }, null, 2)}\n`,
+    changes,
+  };
+}
+
+function claudeSettingsNeedUpdate(repoRoot) {
+  const settingsPath = path.join(repoRoot, ".claude", "settings.json");
+  if (!fs.existsSync(settingsPath)) {
+    return true;
+  }
+  try {
+    const result = mergeClaudeSettings(settingsPath);
+    return result.changes.length > 0;
+  } catch {
+    return true;
+  }
+}
+
 function renderManagedHookEntries() {
   return {
     SessionStart: [
@@ -683,6 +768,10 @@ export function checkRepo(repoRoot) {
     actions.push("install_khuym_hook_entries");
   }
 
+  if (claudeSettingsNeedUpdate(repoRoot)) {
+    actions.push("install_claude_code_hooks");
+  }
+
   if (hookScriptsNeedUpdate(repoRoot)) {
     actions.push("sync_khuym_hook_scripts");
   }
@@ -714,6 +803,7 @@ export function checkRepo(repoRoot) {
       agents_managed_block: managedAgents,
       config_exists: fs.existsSync(configPath),
       hooks_exists: fs.existsSync(hooksPath),
+      claude_settings_exists: fs.existsSync(path.join(repoRoot, ".claude", "settings.json")),
       compact_prompt_conflict: compactPromptConflict,
       onboarding_state: Object.keys(onboarding).length > 0 ? onboarding : null,
       runtime,
@@ -755,6 +845,11 @@ export function applyRepo(repoRoot, allowCompactPromptReplace) {
   const hooksResult = mergeHooksJson(hooksPath);
   fs.writeFileSync(hooksPath, hooksResult.text, "utf8");
 
+  const claudeSettingsPath = path.join(repoRoot, ".claude", "settings.json");
+  ensureParent(claudeSettingsPath);
+  const claudeResult = mergeClaudeSettings(claudeSettingsPath);
+  fs.writeFileSync(claudeSettingsPath, claudeResult.text, "utf8");
+
   const hookScripts = writeHookScripts(repoRoot);
   const supportScripts = writeSupportScripts(repoRoot);
   const statePayload = fs.existsSync(statePath)
@@ -784,6 +879,7 @@ export function applyRepo(repoRoot, allowCompactPromptReplace) {
       agents_mode: mergedAgents.status,
       config_changes: configResult.changes,
       hook_changes: hooksResult.changes,
+      claude_hook_changes: claudeResult.changes,
       hook_scripts: hookScripts,
       support_scripts: supportScripts,
       state_file: path.relative(repoRoot, statePath),
